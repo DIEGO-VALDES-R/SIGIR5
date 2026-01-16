@@ -1,5 +1,5 @@
 {
-  "name": "CorpInventario",
+  "name": "SIGIR5",
   "description": "Sistema de gestión de inventario interno con alertas de stock, vencimientos, control de bajas y generación de reportes.",
   "requestFramePermissions": []
 }
