@@ -10,13 +10,10 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ FALTAN VARIABLES DE ENTORNO');
-  throw new Error('Missing Supabase environment variables. Please check your .env.local file.');
+  console.error('Por favor verifica tu archivo .env.local');
+  throw new Error('Missing Supabase environment variables');
 }
 
 console.log('✅ Creando cliente de Supabase...');
 export const supabase = createClient(supabaseUrl, supabaseKey);
-<<<<<<< HEAD
 console.log('✅ Cliente de Supabase creado correctamente');
-=======
-console.log('✅ Cliente de Supabase creado correctamente');
->>>>>>> b568966112bdd4c7aebaa11be64b9d7a01b57558
