@@ -23,7 +23,8 @@ import {
   Truck,
   HardHat,
   ScanBarcode,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -35,7 +36,8 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { INITIAL_CATEGORIES, INITIAL_PRODUCTS, EXPIRATION_WARNING_DAYS, INITIAL_USERS, PREDEFINED_PRODUCTS } from './constants';
+import { supabase } from './supabaseClient';
+import { EXPIRATION_WARNING_DAYS, PREDEFINED_PRODUCTS } from './constants';
 import { Product, Category, Transaction, TransactionType, AlertLevel, ProductStatus, User, UserRole } from './types';
 import { generateInventoryPDF, generateTransactionHistoryPDF, generateReplenishmentPDF } from './utils/pdfGenerator';
 
@@ -103,7 +105,6 @@ const ScannerModal = ({ isOpen, onClose, onScanSuccess }: { isOpen: boolean, onC
             
             scanner.render(
                 (decodedText) => {
-                    // Success callback
                     playScanSound();
                     onScanSuccess(decodedText);
                     scanner.clear().catch(err => console.error("Failed to clear scanner", err));
@@ -111,17 +112,16 @@ const ScannerModal = ({ isOpen, onClose, onScanSuccess }: { isOpen: boolean, onC
                     onClose();
                 },
                 (errorMessage) => {
-                    // Error callback (scanning in progress, usually ignored)
+                    // Scanning...
                 }
             );
             scannerRef.current = scanner;
         }
 
-        // Cleanup function
         return () => {
             if (scannerRef.current) {
                 scannerRef.current.clear().catch(error => {
-                    console.error("Failed to clear html5-qrcode scanner during cleanup", error);
+                    console.error("Failed to clear html5-qrcode scanner", error);
                 });
                 scannerRef.current = null;
             }
@@ -150,19 +150,13 @@ const ScannerModal = ({ isOpen, onClose, onScanSuccess }: { isOpen: boolean, onC
     );
 };
 
-const LoginScreen = ({ onLogin, users }: { onLogin: (u: User) => void, users: User[] }) => {
+const LoginScreen = ({ onLogin, loading }: { onLogin: (u: string, p: string) => void, loading: boolean }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const user = users.find(u => u.username === username && u.password === password);
-        if (user) {
-            onLogin(user);
-        } else {
-            setError('Credenciales inválidas');
-        }
+        onLogin(username, password);
     };
 
     return (
@@ -183,6 +177,7 @@ const LoginScreen = ({ onLogin, users }: { onLogin: (u: User) => void, users: Us
                             className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-emerald-500"
                             value={username}
                             onChange={e => setUsername(e.target.value)}
+                            disabled={loading}
                         />
                     </div>
                     <div>
@@ -192,14 +187,15 @@ const LoginScreen = ({ onLogin, users }: { onLogin: (u: User) => void, users: Us
                             className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-emerald-500"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
+                            disabled={loading}
                         />
                     </div>
-                    {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-                    <button type="submit" className="w-full bg-emerald-700 text-white py-3 rounded-lg font-bold hover:bg-emerald-800 transition shadow-lg">
-                        Acceder al Almacén
+                    <button type="submit" disabled={loading} className="w-full bg-emerald-700 text-white py-3 rounded-lg font-bold hover:bg-emerald-800 transition shadow-lg flex justify-center items-center gap-2">
+                        {loading && <Loader2 className="animate-spin" size={20}/>}
+                        {loading ? 'Verificando...' : 'Acceder al Almacén'}
                     </button>
                     <div className="text-xs text-center text-slate-400 mt-4">
-                        Demo: admin/admin o operador/123
+                        Conectado a Supabase
                     </div>
                 </form>
             </div>
@@ -367,10 +363,7 @@ const UserManagement = ({ users, onAddUser, currentUser }: { users: User[], onAd
     const handleAdd = (e: React.FormEvent) => {
         e.preventDefault();
         if (newUser.username && newUser.password && newUser.name && newUser.role) {
-            onAddUser({
-                id: `user_${Date.now()}`,
-                ...newUser
-            } as User);
+            onAddUser(newUser as User);
             setNewUser({ role: 'viewer', username: '', password: '', name: '' });
         }
     };
@@ -674,9 +667,7 @@ const InventoryList = ({
     if (selectedProduct && selectedProduct.id) {
         onEditProduct(productData);
     } else {
-        // Create new
-        const newId = `prod_${Date.now()}`;
-        onAddProduct({ ...productData, id: newId });
+        onAddProduct(productData);
     }
     setModalOpen(false);
   };
@@ -861,13 +852,16 @@ const WriteOffModule = ({
     const [receiver, setReceiver] = useState('');
     const [notes, setNotes] = useState('');
     const [scannerOpen, setScannerOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const selectedProduct = products.find(p => p.id === selectedId);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (selectedProduct && quantity > 0 && quantity <= selectedProduct.stock) {
-            onProcessBaja(selectedProduct.id, quantity, `${reason}: ${notes}`, destination, receiver);
+            setLoading(true);
+            await onProcessBaja(selectedProduct.id, quantity, `${reason}: ${notes}`, destination, receiver);
+            setLoading(false);
             setQuantity(1);
             setNotes('');
             setDestination('');
@@ -1004,9 +998,10 @@ const WriteOffModule = ({
 
                         <button 
                             type="submit" 
-                            disabled={!selectedId}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-100"
+                            disabled={!selectedId || loading}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-100 flex justify-center items-center gap-2"
                         >
+                            {loading && <Loader2 className="animate-spin" size={20}/>}
                             Confirmar Salida
                         </button>
                     </form>
@@ -1165,10 +1160,10 @@ const CategoryManager = ({
     const [name, setName] = useState('');
     const [desc, setDesc] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (name) {
-            onAddCategory(name, desc);
+            await onAddCategory(name, desc);
             setName('');
             setDesc('');
         }
@@ -1221,70 +1216,114 @@ const CategoryManager = ({
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'bajas' | 'replenishment' | 'categories' | 'users'>('dashboard');
+  const [loading, setLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
   
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('corp_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-  });
-
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('corp_categories');
-    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
-  });
-
-  const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem('corp_users');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
-  });
-  
-  // Store transactions locally
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-      const saved = localStorage.getItem('corp_transactions');
-      return saved ? JSON.parse(saved) : [];
-  });
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const [inventoryFilter, setInventoryFilter] = useState<string | null>(null);
 
-  useEffect(() => { localStorage.setItem('corp_products', JSON.stringify(products)); }, [products]);
-  useEffect(() => { localStorage.setItem('corp_categories', JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem('corp_users', JSON.stringify(users)); }, [users]);
-  useEffect(() => { localStorage.setItem('corp_transactions', JSON.stringify(transactions)); }, [transactions]);
+  // --- Data Fetching ---
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const handleLogin = (u: User) => setUser(u);
-  const handleLogout = () => setUser(null);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+        const { data: p } = await supabase.from('products').select('*');
+        const { data: c } = await supabase.from('categories').select('*');
+        const { data: u } = await supabase.from('users').select('*');
+        const { data: t } = await supabase.from('transactions').select('*').order('date', { ascending: false });
 
-  const addProduct = (product: Product) => {
-    setProducts(prev => [...prev, product]);
-  };
+        if (p) setProducts(p as Product[]);
+        if (c) setCategories(c as Category[]);
+        if (u) setUsers(u as User[]);
+        if (t) setTransactions(t as Transaction[]);
 
-  const editProduct = (updatedProduct: Product) => {
-    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
-  };
-
-  const deleteProduct = (id: string) => {
-    if (confirm('¿Está seguro de eliminar este material del sistema?')) {
-        setProducts(prev => prev.filter(p => p.id !== id));
+    } catch (err) {
+        console.error("Error fetching data:", err);
+    } finally {
+        setLoading(false);
     }
   };
 
-  const processBaja = (productId: string, qty: number, reason: string, destination?: string, receiver?: string) => {
+  const handleLogin = async (u: string, p: string) => {
+    setAuthLoading(true);
+    // In a real app, use Supabase Auth. This simulates the existing logic with DB lookup.
+    const { data, error } = await supabase.from('users').select('*').eq('username', u).eq('password', p).single();
+    
+    setAuthLoading(false);
+    if (data) {
+        setUser(data as User);
+    } else {
+        alert("Credenciales inválidas");
+    }
+  };
+
+  const handleLogout = () => setUser(null);
+
+  // --- CRUD Operations ---
+
+  const addProduct = async (product: Product) => {
+    // Remove temporary ID if any
+    const { id, ...newProd } = product; 
+    const { data, error } = await supabase.from('products').insert([newProd]).select();
+    if (data) {
+        setProducts(prev => [...prev, data[0] as Product]);
+    } else {
+        console.error(error);
+        alert("Error al crear producto");
+    }
+  };
+
+  const editProduct = async (updatedProduct: Product) => {
+    const { data, error } = await supabase
+        .from('products')
+        .update(updatedProduct)
+        .eq('id', updatedProduct.id)
+        .select();
+    
+    if (data) {
+        setProducts(prev => prev.map(p => p.id === updatedProduct.id ? (data[0] as Product) : p));
+    } else {
+        console.error(error);
+        alert("Error al actualizar producto");
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    if (confirm('¿Está seguro de eliminar este material del sistema?')) {
+        const { error } = await supabase.from('products').delete().eq('id', id);
+        if (!error) {
+            setProducts(prev => prev.filter(p => p.id !== id));
+        } else {
+            alert("Error al eliminar (puede tener transacciones asociadas)");
+        }
+    }
+  };
+
+  const processBaja = async (productId: string, qty: number, reason: string, destination?: string, receiver?: string) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
-    // Update Product Stock
-    setProducts(prev => prev.map(p => {
-        if (p.id === productId) {
-            return { ...p, stock: p.stock - qty };
-        }
-        return p;
-    }));
+    // 1. Update Stock
+    const newStock = product.stock - qty;
+    const { error: stockError } = await supabase.from('products').update({ stock: newStock }).eq('id', productId);
+    
+    if (stockError) {
+        alert("Error al actualizar stock");
+        return;
+    }
 
-    // Record Transaction
-    const newTx: Transaction = {
-        id: `tx_${Date.now()}`,
+    // 2. Create Transaction
+    const newTx = {
         productId,
         productName: product.name,
-        type: TransactionType.OUT, // Use OUT for deliveries/bajas generally here
+        type: TransactionType.OUT,
         quantity: qty,
         date: new Date().toISOString(),
         reason,
@@ -1292,16 +1331,30 @@ export default function App() {
         destination,
         receiver
     };
-    setTransactions(prev => [newTx, ...prev]);
+
+    const { data: txData, error: txError } = await supabase.from('transactions').insert([newTx]).select();
+
+    if (txData) {
+        // Update local state
+        setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock } : p));
+        setTransactions(prev => [txData[0] as Transaction, ...prev]);
+    }
   };
 
-  const addCategory = (name: string, description: string) => {
-    const newCat: Category = { id: `cat_${Date.now()}`, name, description };
-    setCategories(prev => [...prev, newCat]);
+  const addCategory = async (name: string, description: string) => {
+    const { data, error } = await supabase.from('categories').insert([{ name, description }]).select();
+    if (data) {
+        setCategories(prev => [...prev, data[0] as Category]);
+    }
   };
 
-  const addUser = (newUser: User) => {
-      setUsers(prev => [...prev, newUser]);
+  const addUser = async (newUser: User) => {
+      // Remove temporary ID
+      const { id, ...userObj } = newUser;
+      const { data, error } = await supabase.from('users').insert([userObj]).select();
+      if (data) {
+          setUsers(prev => [...prev, data[0] as User]);
+      }
   };
 
   const navigateToCategory = (catId: string) => {
@@ -1310,7 +1363,7 @@ export default function App() {
   };
 
   if (!user) {
-      return <LoginScreen onLogin={handleLogin} users={users} />;
+      return <LoginScreen onLogin={handleLogin} loading={authLoading} />;
   }
 
   return (
@@ -1367,7 +1420,13 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 flex-1 p-8 overflow-y-auto min-h-screen">
+      <main className="ml-64 flex-1 p-8 overflow-y-auto min-h-screen relative">
+        {loading && (
+             <div className="absolute inset-0 bg-white/80 z-50 flex items-center justify-center">
+                 <Loader2 className="animate-spin text-emerald-600" size={48} />
+             </div>
+        )}
+
         {activeTab === 'dashboard' && <Dashboard products={products} categories={categories} onCategoryClick={navigateToCategory} />}
         {activeTab === 'inventory' && (
             <InventoryList 
