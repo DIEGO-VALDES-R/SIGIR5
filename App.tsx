@@ -1054,10 +1054,11 @@ export default function App() {
     setLoading(true);
     
     try {
-      // Parallel loading
-      const [productsRes, categoriesRes, txRes] = await Promise.all([
+      // Parallel loading including Users
+      const [productsRes, categoriesRes, usersRes, txRes] = await Promise.all([
         supabase.from('products').select('*'),
         supabase.from('categories').select('*'),
+        supabase.from('users').select('*'),
         supabase.from('transactions').select('*').order('date', { ascending: false })
       ]);
       
@@ -1073,6 +1074,15 @@ export default function App() {
       } else {
         console.log('✅ Categorías:', categoriesRes.data?.length);
         setCategories(categoriesRes.data || []);
+      }
+
+      // Handling Users
+      if (usersRes.error) {
+        console.error('❌ Error cargando usuarios:', usersRes.error);
+        setUsers(INITIAL_USERS); // Fallback
+      } else {
+        console.log('✅ Usuarios cargados:', usersRes.data?.length || 0);
+        setUsers(usersRes.data || []);
       }
 
       if (txRes.error) {
