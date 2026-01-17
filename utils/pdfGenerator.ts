@@ -3,129 +3,454 @@ import autoTable from 'jspdf-autotable';
 import { Product, Category, Transaction } from '../types';
 import { CURRENCY_SYMBOL } from '../constants';
 
-// --- Existing Inventory PDF ---
+// Colores corporativos
+const COLORS = {
+  primary: [16, 185, 129],      // Emerald-600
+  secondary: [52, 73, 94],      // Slate-700
+  danger: [239, 68, 68],        // Red-500
+  warning: [245, 158, 11],      // Amber-500
+  success: [34, 197, 94],       // Green-500
+  text: [51, 65, 85],           // Slate-700
+  lightGray: [241, 245, 249]    // Slate-100
+};
+
+// Función auxiliar para agregar header corporativo
+const addHeader = (doc: any, title: string, subtitle?: string) => {
+  const pageWidth = doc.internal.pageSize.width;
+  
+  // Rectángulo de fondo para el header
+  doc.setFillColor(...COLORS.primary);
+  doc.rect(0, 0, pageWidth, 35, 'F');
+  
+  // Título principal
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.setFont(undefined, 'bold');
+  doc.text(title, 14, 18);
+  
+  // Subtítulo
+  if (subtitle) {
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(subtitle, 14, 26);
+  }
+  
+  // Fecha en la esquina derecha
+  const today = new Date().toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  doc.setFontSize(9);
+  const textWidth = doc.getTextWidth(today);
+  doc.text(today, pageWidth - textWidth - 14, 18);
+  
+  // Línea decorativa
+  doc.setDrawColor(...COLORS.secondary);
+  doc.setLineWidth(0.5);
+  doc.line(14, 38, pageWidth - 14, 38);
+  
+  // Reset color
+  doc.setTextColor(...COLORS.text);
+};
+
+// Función auxiliar para agregar footer
+const addFooter = (doc: any, pageNumber: number, totalPages: number, additionalInfo?: string) => {
+  const pageHeight = doc.internal.pageSize.height;
+  const pageWidth = doc.internal.pageSize.width;
+  
+  doc.setDrawColor(...COLORS.lightGray);
+  doc.setLineWidth(0.5);
+  doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
+  
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text('CorpInventario - Sistema de Gestión', 14, pageHeight - 10);
+  
+  if (additionalInfo) {
+    doc.text(additionalInfo, 14, pageHeight - 6);
+  }
+  
+  const pageText = `Página ${pageNumber} de ${totalPages}`;
+  const textWidth = doc.getTextWidth(pageText);
+  doc.text(pageText, pageWidth - textWidth - 14, pageHeight - 10);
+};
+
+// --- INVENTARIO MEJORADO ---
 export const generateInventoryPDF = (products: Product[], categories: Category[]) => {
   const doc: any = new jsPDF();
-  const today = new Date().toLocaleDateString();
-
-  doc.setFontSize(20);
-  doc.text('Reporte de Inventario General', 14, 22);
-  doc.setFontSize(10);
-  doc.text(`Fecha: ${today}`, 14, 30);
-
-  let finalY = 40;
-
-  categories.forEach((cat) => {
+  
+  addHeader(doc, 'Reporte de Inventario General', 'Estado completo del inventario por categorías');
+  
+  let finalY = 45;
+  
+  // Calcular totales
+  const totalProducts = products.length;
+  const totalValue = products.reduce((sum, p) => sum + (p.stock * p.price), 0);
+  const lowStock = products.filter(p => p.stock <= p.minStock && p.stock > 0).length;
+  const outOfStock = products.filter(p => p.stock === 0).length;
+  
+  // Panel de resumen
+  doc.setFillColor(...COLORS.lightGray);
+  doc.roundedRect(14, finalY, doc.internal.pageSize.width - 28, 28, 3, 3, 'F');
+  
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(...COLORS.text);
+  
+  const col1 = 20;
+  const col2 = 70;
+  const col3 = 130;
+  
+  doc.text('Total Productos:', col1, finalY + 8);
+  doc.setFont(undefined, 'normal');
+  doc.text(totalProducts.toString(), col1, finalY + 14);
+  
+  doc.setFont(undefined, 'bold');
+  doc.text('Valor Inventario:', col2, finalY + 8);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...COLORS.success);
+  doc.text(`${CURRENCY_SYMBOL}${totalValue.toLocaleString()}`, col2, finalY + 14);
+  
+  doc.setTextColor(...COLORS.text);
+  doc.setFont(undefined, 'bold');
+  doc.text('Stock Bajo:', col3, finalY + 8);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...COLORS.warning);
+  doc.text(lowStock.toString(), col3, finalY + 14);
+  
+  doc.setTextColor(...COLORS.text);
+  doc.setFont(undefined, 'bold');
+  doc.text('Agotados:', col3, finalY + 20);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...COLORS.danger);
+  doc.text(outOfStock.toString(), col3, finalY + 26);
+  
+  finalY += 35;
+  
+  // Tablas por categoría
+  categories.forEach((cat, index) => {
     const catProducts = products.filter(p => p.categoryId === cat.id);
-    if (catProducts.length > 0) {
-      doc.setFontSize(14);
-      doc.setTextColor(41, 128, 185);
-      doc.text(cat.name, 14, finalY + 10);
-      
-      const tableData = catProducts.map(p => {
-        const difference = p.initialStock - p.stock;
-        return [
-            p.code,
-            p.name,
-            p.initialStock,
-            p.stock,
-            difference,
-            p.unit,
-            `${CURRENCY_SYMBOL}${p.price.toFixed(2)}`,
-            p.stock === 0 ? 'SIN STOCK' : (p.stock <= p.minStock ? 'BAJO' : 'OK')
-        ];
-      });
-
-      autoTable(doc, {
-        startY: finalY + 15,
-        head: [['Código', 'Producto', 'Ini', 'Act', 'Dif', 'Unid.', 'Costo', 'Estado']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [52, 73, 94] },
-        styles: { fontSize: 8 },
-        columnStyles: { 7: { fontStyle: 'bold' } },
-        didParseCell: function(data: any) {
-            if (data.section === 'body' && data.column.index === 7) {
-                 if (data.cell.raw === 'SIN STOCK') data.cell.styles.textColor = [0, 0, 0];
-                 else if (data.cell.raw === 'BAJO') data.cell.styles.textColor = [231, 76, 60];
-            }
-        }
-      });
-      finalY = doc.lastAutoTable.finalY + 5;
+    if (catProducts.length === 0) return;
+    
+    // Verificar espacio para nueva categoría
+    if (finalY > doc.internal.pageSize.height - 60) {
+      doc.addPage();
+      addHeader(doc, 'Reporte de Inventario General', 'Continuación');
+      finalY = 45;
     }
+    
+    // Título de categoría con badge
+    doc.setFillColor(...COLORS.primary);
+    doc.roundedRect(14, finalY, 50, 8, 2, 2, 'F');
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text(cat.name, 16, finalY + 5.5);
+    
+    doc.setTextColor(...COLORS.text);
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    doc.text(`(${catProducts.length} productos)`, 66, finalY + 5.5);
+    
+    const tableData = catProducts.map(p => {
+      const difference = p.initialStock - p.stock;
+      const status = p.stock === 0 ? 'AGOTADO' : (p.stock <= p.minStock ? 'BAJO' : 'OK');
+      return [
+        p.code,
+        p.name,
+        p.initialStock.toString(),
+        p.stock.toString(),
+        difference.toString(),
+        p.unit,
+        `${CURRENCY_SYMBOL}${p.price.toFixed(2)}`,
+        `${CURRENCY_SYMBOL}${(p.stock * p.price).toFixed(2)}`,
+        status
+      ];
+    });
+    
+    autoTable(doc, {
+      startY: finalY + 12,
+      head: [['Código', 'Producto', 'Inicial', 'Actual', 'Dif.', 'Unid.', 'Precio', 'Valor', 'Estado']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { 
+        fillColor: COLORS.secondary,
+        fontSize: 8,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      styles: { 
+        fontSize: 8,
+        cellPadding: 2
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 20 },
+        1: { cellWidth: 45 },
+        2: { halign: 'center', cellWidth: 15 },
+        3: { halign: 'center', cellWidth: 15, fontStyle: 'bold' },
+        4: { halign: 'center', cellWidth: 12 },
+        5: { halign: 'center', cellWidth: 15 },
+        6: { halign: 'right', cellWidth: 18 },
+        7: { halign: 'right', cellWidth: 20, fontStyle: 'bold' },
+        8: { halign: 'center', fontStyle: 'bold', cellWidth: 18 }
+      },
+      didParseCell: function(data: any) {
+        if (data.section === 'body' && data.column.index === 8) {
+          if (data.cell.raw === 'AGOTADO') {
+            data.cell.styles.textColor = [255, 255, 255];
+            data.cell.styles.fillColor = COLORS.danger;
+          } else if (data.cell.raw === 'BAJO') {
+            data.cell.styles.textColor = COLORS.warning;
+          } else {
+            data.cell.styles.textColor = COLORS.success;
+          }
+        }
+        // Resaltar stock actual bajo
+        if (data.section === 'body' && data.column.index === 3) {
+          const stockValue = parseInt(data.cell.raw);
+          if (stockValue === 0) {
+            data.cell.styles.textColor = COLORS.danger;
+          }
+        }
+      }
+    });
+    
+    finalY = doc.lastAutoTable.finalY + 8;
   });
+  
+  // Footer en todas las páginas
+  const totalPages = doc.internal.pages.length - 1;
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    addFooter(doc, i, totalPages, `Total productos: ${totalProducts} | Valor: ${CURRENCY_SYMBOL}${totalValue.toLocaleString()}`);
+  }
+  
   doc.save(`Inventario_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
-// --- New: Transaction History PDF ---
+// --- HISTORIAL DE TRANSACCIONES MEJORADO ---
 export const generateTransactionHistoryPDF = (transactions: Transaction[]) => {
-    const doc: any = new jsPDF();
-    const today = new Date().toLocaleDateString();
-
-    doc.setFontSize(18);
-    doc.text('Historial de Salidas y Bajas', 14, 22);
-    doc.setFontSize(10);
-    doc.text(`Generado el: ${today}`, 14, 30);
-
-    const tableData = transactions.map(t => [
-        new Date(t.date).toLocaleDateString() + ' ' + new Date(t.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-        t.productName,
-        t.quantity,
-        t.reason || '-',
-        t.destination || 'N/A',
-        t.receiver || 'N/A',
-        t.user
-    ]);
-
-    autoTable(doc, {
-        startY: 40,
-        head: [['Fecha/Hora', 'Producto', 'Cant.', 'Motivo', 'Destino', 'Recibe', 'Registró']],
-        body: tableData,
-        theme: 'grid',
-        headStyles: { fillColor: [192, 57, 43] }, // Red header for exits
-        styles: { fontSize: 8 },
-    });
-
-    doc.save(`Historial_Salidas_${new Date().toISOString().split('T')[0]}.pdf`);
+  const doc: any = new jsPDF();
+  
+  addHeader(doc, 'Historial de Salidas y Bajas', 'Registro completo de movimientos de inventario');
+  
+  let finalY = 45;
+  
+  // Resumen de transacciones
+  const totalQty = transactions.reduce((sum, t) => sum + t.quantity, 0);
+  const uniqueProducts = new Set(transactions.map(t => t.productName)).size;
+  
+  doc.setFillColor(...COLORS.lightGray);
+  doc.roundedRect(14, finalY, doc.internal.pageSize.width - 28, 20, 3, 3, 'F');
+  
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(...COLORS.text);
+  
+  doc.text('Total Movimientos:', 20, finalY + 8);
+  doc.setFont(undefined, 'normal');
+  doc.text(transactions.length.toString(), 20, finalY + 14);
+  
+  doc.setFont(undefined, 'bold');
+  doc.text('Cantidad Total:', 80, finalY + 8);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...COLORS.danger);
+  doc.text(`-${totalQty}`, 80, finalY + 14);
+  
+  doc.setTextColor(...COLORS.text);
+  doc.setFont(undefined, 'bold');
+  doc.text('Productos Afectados:', 130, finalY + 8);
+  doc.setFont(undefined, 'normal');
+  doc.text(uniqueProducts.toString(), 130, finalY + 14);
+  
+  finalY += 28;
+  
+  const tableData = transactions.map(t => [
+    new Date(t.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+    new Date(t.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+    t.productName,
+    t.quantity.toString(),
+    t.reason || '-',
+    t.destination || 'N/A',
+    t.receiver || 'N/A',
+    t.user || 'Sistema'
+  ]);
+  
+  autoTable(doc, {
+    startY: finalY,
+    head: [['Fecha', 'Hora', 'Producto', 'Cant.', 'Motivo', 'Destino', 'Recibe', 'Registró']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: { 
+      fillColor: COLORS.danger,
+      fontSize: 8,
+      fontStyle: 'bold',
+      halign: 'center'
+    },
+    styles: { 
+      fontSize: 7,
+      cellPadding: 2
+    },
+    columnStyles: {
+      0: { cellWidth: 18, halign: 'center' },
+      1: { cellWidth: 15, halign: 'center' },
+      2: { cellWidth: 40, fontStyle: 'bold' },
+      3: { cellWidth: 12, halign: 'center', textColor: COLORS.danger, fontStyle: 'bold' },
+      4: { cellWidth: 30 },
+      5: { cellWidth: 25 },
+      6: { cellWidth: 25 },
+      7: { cellWidth: 20, fontSize: 7 }
+    }
+  });
+  
+  const totalPages = doc.internal.pages.length - 1;
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    addFooter(doc, i, totalPages, `Total movimientos: ${transactions.length} | Cantidad total: ${totalQty} unidades`);
+  }
+  
+  doc.save(`Historial_Salidas_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
-// --- New: Replenishment Order PDF ---
+// --- ORDEN DE REPOSICIÓN MEJORADA ---
 export const generateReplenishmentPDF = (products: Product[]) => {
-    const doc: any = new jsPDF();
-    const today = new Date().toLocaleDateString();
-    
-    // Filter needed products
-    const toOrder = products.filter(p => p.stock <= p.minStock);
-
-    doc.setFontSize(18);
-    doc.text('Orden de Pedido Sugerida', 14, 22);
-    doc.setFontSize(10);
-    doc.text(`Fecha: ${today}`, 14, 30);
-    doc.text('Lista de productos con stock crítico o agotado.', 14, 35);
-
-    const tableData = toOrder.map(p => {
-        const suggested = (p.minStock * 2) - p.stock; // Simple logic: restock to 2x min
-        return [
-            p.code,
-            p.name,
-            p.stock === 0 ? 'AGOTADO' : p.stock,
-            p.minStock,
-            suggested > 0 ? suggested : 0,
-            p.unit
-        ];
-    });
-
-    autoTable(doc, {
-        startY: 45,
-        head: [['Código', 'Producto', 'Stock Actual', 'Min.', 'Sugerido', 'Unidad']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [243, 156, 18] }, // Orange/Yellow header
-        styles: { fontSize: 9 },
-        columnStyles: {
-            2: { fontStyle: 'bold', textColor: [231, 76, 60] }
+  const doc: any = new jsPDF();
+  
+  const toOrder = products.filter(p => p.stock <= p.minStock);
+  
+  addHeader(doc, 'Orden de Pedido Sugerida', 'Productos con stock crítico que requieren reposición');
+  
+  let finalY = 45;
+  
+  // Resumen crítico
+  const critical = toOrder.filter(p => p.stock === 0).length;
+  const low = toOrder.filter(p => p.stock > 0 && p.stock <= p.minStock).length;
+  const totalSuggested = toOrder.reduce((sum, p) => sum + ((p.minStock * 2) - p.stock), 0);
+  
+  doc.setFillColor(254, 242, 242); // Red-50
+  doc.roundedRect(14, finalY, doc.internal.pageSize.width - 28, 25, 3, 3, 'F');
+  
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(...COLORS.danger);
+  
+  doc.text('⚠ PRODUCTOS CRÍTICOS', 20, finalY + 8);
+  
+  doc.setTextColor(...COLORS.text);
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'bold');
+  doc.text('Agotados:', 20, finalY + 15);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...COLORS.danger);
+  doc.text(critical.toString(), 20, finalY + 20);
+  
+  doc.setTextColor(...COLORS.text);
+  doc.setFont(undefined, 'bold');
+  doc.text('Stock Bajo:', 70, finalY + 15);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...COLORS.warning);
+  doc.text(low.toString(), 70, finalY + 20);
+  
+  doc.setTextColor(...COLORS.text);
+  doc.setFont(undefined, 'bold');
+  doc.text('Total a Pedir:', 120, finalY + 15);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...COLORS.primary);
+  doc.text(`${totalSuggested} unidades`, 120, finalY + 20);
+  
+  finalY += 33;
+  
+  const tableData = toOrder.map(p => {
+    const suggested = Math.max((p.minStock * 2) - p.stock, 0);
+    const status = p.stock === 0 ? 'AGOTADO' : 'BAJO';
+    return [
+      p.code,
+      p.name,
+      p.stock === 0 ? 'AGOTADO' : p.stock.toString(),
+      p.minStock.toString(),
+      suggested.toString(),
+      p.unit,
+      `${CURRENCY_SYMBOL}${p.price.toFixed(2)}`,
+      `${CURRENCY_SYMBOL}${(suggested * p.price).toFixed(2)}`,
+      status
+    ];
+  });
+  
+  autoTable(doc, {
+    startY: finalY,
+    head: [['Código', 'Producto', 'Stock', 'Mín.', 'Pedir', 'Unid.', 'Precio', 'Costo', 'Estado']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: { 
+      fillColor: COLORS.warning,
+      fontSize: 8,
+      fontStyle: 'bold',
+      halign: 'center'
+    },
+    styles: { 
+      fontSize: 8,
+      cellPadding: 2
+    },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 20 },
+      1: { cellWidth: 50 },
+      2: { halign: 'center', cellWidth: 18, fontStyle: 'bold' },
+      3: { halign: 'center', cellWidth: 15 },
+      4: { halign: 'center', cellWidth: 15, fontStyle: 'bold', textColor: COLORS.primary },
+      5: { halign: 'center', cellWidth: 15 },
+      6: { halign: 'right', cellWidth: 20 },
+      7: { halign: 'right', cellWidth: 22, fontStyle: 'bold' },
+      8: { halign: 'center', fontStyle: 'bold', cellWidth: 20 }
+    },
+    didParseCell: function(data: any) {
+      // Estado
+      if (data.section === 'body' && data.column.index === 8) {
+        if (data.cell.raw === 'AGOTADO') {
+          data.cell.styles.textColor = [255, 255, 255];
+          data.cell.styles.fillColor = COLORS.danger;
+        } else {
+          data.cell.styles.textColor = COLORS.warning;
         }
-    });
-
-    doc.save(`Pedido_Reposicion_${new Date().toISOString().split('T')[0]}.pdf`);
+      }
+      // Stock actual
+      if (data.section === 'body' && data.column.index === 2) {
+        if (data.cell.raw === 'AGOTADO') {
+          data.cell.styles.textColor = [255, 255, 255];
+          data.cell.styles.fillColor = COLORS.danger;
+        }
+      }
+    },
+    didDrawPage: function(data: any) {
+      // Agregar total en la última página
+      if (data.pageNumber === doc.internal.pages.length - 1) {
+        const pageHeight = doc.internal.pageSize.height;
+        const finalTableY = data.cursor.y;
+        
+        if (finalTableY < pageHeight - 50) {
+          const totalCost = toOrder.reduce((sum, p) => {
+            const suggested = Math.max((p.minStock * 2) - p.stock, 0);
+            return sum + (suggested * p.price);
+          }, 0);
+          
+          doc.setFillColor(...COLORS.primary);
+          doc.roundedRect(120, finalTableY + 5, 75, 12, 2, 2, 'F');
+          
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'bold');
+          doc.setTextColor(255, 255, 255);
+          doc.text('COSTO TOTAL ESTIMADO:', 125, finalTableY + 12);
+          doc.text(`${CURRENCY_SYMBOL}${totalCost.toLocaleString()}`, 170, finalTableY + 12);
+        }
+      }
+    }
+  });
+  
+  const totalPages = doc.internal.pages.length - 1;
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    addFooter(doc, i, totalPages, `Productos a reponer: ${toOrder.length} | Prioridad: ${critical} críticos`);
+  }
+  
+  doc.save(`Pedido_Reposicion_${new Date().toISOString().split('T')[0]}.pdf`);
 };
