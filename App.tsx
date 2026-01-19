@@ -364,7 +364,9 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
         name: '',
         description: '',
         unit: 'Unidad',
-        price: 0
+        price: 0,
+        location: '', // AGREGADO
+        supplier: ''  // AGREGADO
     });
 
     useEffect(() => {
@@ -380,7 +382,9 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
                 name: '',
                 description: '',
                 unit: 'Unidad',
-                price: 0
+                price: 0,
+                location: '', // AGREGADO
+                supplier: ''  // AGREGADO
             });
         }
     }, [product, isOpen, categories]);
@@ -457,6 +461,32 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
                             value={formData.description || ''}
                             onChange={e => handleChange('description', e.target.value)}
                         />
+                    </div>
+
+                    {/* AGREGADO: UBICACIÓN Y PROVEEDOR */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Ubicación</label>
+                            <input 
+                                disabled={readOnly} 
+                                type="text" 
+                                className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                                value={formData.location || ''} 
+                                onChange={e => handleChange('location', e.target.value)} 
+                                placeholder="Ej. Estantería A, Depósito..."
+                            />
+                        </div>
+                        <div>
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Proveedor</label>
+                            <input 
+                                disabled={readOnly} 
+                                type="text" 
+                                className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                                value={formData.supplier || ''} 
+                                onChange={e => handleChange('supplier', e.target.value)} 
+                                placeholder="Ej. Papelera S.A."
+                            />
+                        </div>
                     </div>
 
                     {/* Stock Section */}
@@ -616,7 +646,7 @@ const InventoryList = ({
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
-  onImport, // Nuevo prop
+  onImport,
   initialCategoryFilter,
   currentUser,
   darkMode
@@ -626,7 +656,7 @@ const InventoryList = ({
   onAddProduct: (p: Product) => void,
   onEditProduct: (p: Product) => void,
   onDeleteProduct: (id: string) => void,
-  onImport: (e: React.ChangeEvent<HTMLInputElement>) => void, // Nuevo prop
+  onImport: (e: React.ChangeEvent<HTMLInputElement>) => void,
   initialCategoryFilter: string | null,
   currentUser: User,
   darkMode: boolean
@@ -660,7 +690,7 @@ const InventoryList = ({
 
   const handleRowClick = (product: Product) => {
     setSelectedProduct(product);
-    setIsEditMode(false); 
+    setIsEditMode(true); // CAMBIO CLAVE: Ahora abre en modo edición directo
     setModalOpen(true);
   };
 
@@ -769,6 +799,8 @@ const InventoryList = ({
               <tr>
                 <th className="px-6 py-4">Producto</th>
                 <th className="px-6 py-4">Categoría</th>
+                <th className="px-6 py-4">Ubicación</th>
+                <th className="px-6 py-4">Proveedor</th>
                 <th className="px-6 py-4 text-center">Inicial</th>
                 <th className="px-6 py-4 text-center">Actual</th>
                 <th className="px-6 py-4 text-center">Dif.</th>
@@ -791,6 +823,13 @@ const InventoryList = ({
                     </td>
                     <td className={`px-6 py-4 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                         <span className={`inline-block px-2 py-1 rounded text-xs ${darkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>{category?.name}</span>
+                    </td>
+                    {/* Nuevas columnas de datos */}
+                    <td className={`px-6 py-4 text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {product.location || '-'}
+                    </td>
+                    <td className={`px-6 py-4 text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {product.supplier || '-'}
                     </td>
                     <td className={`px-6 py-4 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{product.initialStock}</td>
                     <td className="px-6 py-4 text-center">
@@ -854,6 +893,7 @@ const InventoryList = ({
         darkMode={darkMode}
       />
 
+      {/* El botón flotante de editar ya no es necesario porque el modal ya abre en modo edición */}
       {modalOpen && !isEditMode && currentUser.role === 'admin' && (
           <div className="fixed z-[60] bottom-10 right-10">
               <button onClick={switchToEdit} className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg flex items-center gap-2">
@@ -1346,11 +1386,13 @@ export default function App() {
                     categoryId: row.categoryId, 
                     stock: parseInt(row.stock) || 0,
                     initialStock: parseInt(row.stock) || 0,
-                    minStock: parseInt(row.minStock) || 5,
+                    minStock: parseInt(row.minStock) || 10, // Default 10 según esquema
                     unit: row.unit || 'Unidad',
                     price: parseFloat(row.price) || 0,
                     status: ProductStatus.ACTIVE,
-                    expirationDate: row.expirationDate || undefined
+                    expirationDate: row.expirationDate || undefined,
+                    location: row.location || 'Sin Ubicación',
+                    supplier: row.supplier || 'Sin Proveedor'
                 };
 
                 const { error } = await supabase.from('products').insert(newProd);
