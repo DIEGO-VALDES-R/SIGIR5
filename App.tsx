@@ -1691,38 +1691,46 @@ export default function App() {
       toast('Sesión cerrada');
   };
 
-  const addProduct = async (product: Product) => {
-    setProducts(prev => [...prev, product]);
-    const { error } = await supabase.from('products').insert(product);
+ const addProduct = async (product: Product) => {
+    // Eliminar imageFile antes de enviar a Supabase
+    const { imageFile, ...productForDB } = product;
+    
+    setProducts(prev => [...prev, productForDB]);
+    const { error } = await supabase.from('products').insert(productForDB);
     
     if (error) {
+      console.error('Error de Supabase:', error); // ← Agregar para ver el error exacto
       toast.error('Error al guardar en base de datos');
     } else {
         toast.success('Producto agregado');
-        logAudit('CREATED', { id: product.id, name: product.name, code: product.code }, user);
+        logAudit('CREATED', { id: productForDB.id, name: productForDB.name, code: productForDB.code }, user);
     }
-  };
+};
 
   const editProduct = async (updatedProduct: Product) => {
     const oldProduct = products.find(p => p.id === updatedProduct.id); 
     
-    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
-    const { error } = await supabase.from('products').update(updatedProduct).eq('id', updatedProduct.id);
+    // Eliminar imageFile antes de enviar a Supabase
+    const { imageFile, ...productForDB } = updatedProduct;
+    
+    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? productForDB : p));
+    const { error } = await supabase.from('products').update(productForDB).eq('id', updatedProduct.id);
     
     if (error) {
+        console.error('Error de Supabase:', error); // ← Agregar para ver el error exacto
         toast.error('Error al actualizar producto');
     } else {
         toast.success('Producto actualizado');
         logAudit('UPDATED', { 
-            id: updatedProduct.id, 
-            name: updatedProduct.name,
+            id: productForDB.id, 
+            name: productForDB.name,
             old_price: oldProduct?.price,
-            new_price: updatedProduct.price,
+            new_price: productForDB.price,
             old_stock: oldProduct?.stock,
-            new_stock: updatedProduct.stock 
+            new_stock: productForDB.stock 
         }, user);
     }
-  };
+};
 
   const deleteProduct = async (id: string) => {
     const productToDelete = products.find(p => p.id === id); 
