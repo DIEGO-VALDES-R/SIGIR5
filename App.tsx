@@ -578,24 +578,37 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
 
 // --- Scanner Component ---
 const ScannerModal = ({ isOpen, onClose, onScan, darkMode }: { isOpen: boolean, onClose: () => void, onScan: (decodedText: string) => void, darkMode: boolean }) => {
+  const [error, setError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
   
   useEffect(() => {
     let html5QrCode: Html5Qrcode | null = null;
 
     const startScanner = async () => {
       try {
-        html5QrCode = new Html5Qrcode("reader");
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        setError(null);
+        setIsScanning(true);
         
+        html5QrCode = new Html5Qrcode("reader");
+        
+        const config = { 
+          fps: 10, 
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        };
+        
+        // Intentar usar la cámara trasera primero
         await html5QrCode.start(
           { facingMode: "environment" }, 
           config, 
-          (decodedText, decodedResult) => {
+          (decodedText) => {
+            console.log("Código detectado:", decodedText);
             onScan(decodedText);
             toast.success('Código detectado', { icon: '📷' });
             
             if(html5QrCode) {
                 html5QrCode.stop().then(() => {
+                    setIsScanning(false);
                     onClose(); 
                 }).catch(err => console.error("Error al detener", err));
             }
@@ -604,24 +617,44 @@ const ScannerModal = ({ isOpen, onClose, onScan, darkMode }: { isOpen: boolean, 
             // Ignorar errores de escaneo continuo
           }
         );
-      } catch (err) {
+        
+        setIsScanning(true);
+        
+      } catch (err: any) {
         console.error("Error iniciando escáner", err);
-        toast.error("No se pudo acceder a la cámara. Verifica permisos.");
-        onClose();
+        setIsScanning(false);
+        
+        // Mensajes de error específicos
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setError('Permiso de cámara denegado. Por favor, permite el acceso a la cámara.');
+          toast.error("Permiso de cámara denegado");
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          setError('No se encontró ninguna cámara en este dispositivo.');
+          toast.error("No se encontró cámara");
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          setError('La cámara está siendo usada por otra aplicación.');
+          toast.error("Cámara en uso");
+        } else {
+          setError('Error al acceder a la cámara. Intenta desde un dispositivo móvil.');
+          toast.error("Error al acceder a la cámara");
+        }
       }
     };
 
     if (isOpen) {
-      startScanner();
+      // Pequeño delay para asegurar que el elemento DOM está listo
+      setTimeout(startScanner, 100);
     } else {
       if (html5QrCode) {
         html5QrCode.stop().catch(err => console.log(err));
+        setIsScanning(false);
       }
     }
 
     return () => {
       if (html5QrCode) {
         html5QrCode.stop().catch(err => console.log(err));
+        setIsScanning(false);
       }
     };
   }, [isOpen, onScan, onClose]);
@@ -633,7 +666,7 @@ const ScannerModal = ({ isOpen, onClose, onScan, darkMode }: { isOpen: boolean, 
       <div className={`rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col transition-colors ${darkMode ? 'bg-slate-800 text-white' : 'bg-white text-slate-900'}`}>
         <div className={`p-4 border-b flex justify-between items-center ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
             <h3 className={`text-lg font-bold flex items-center gap-2`}>
-                <div className="w-2 h-6 bg-emerald-500 rounded-full animate-pulse"></div>
+                {isScanning && <div className="w-2 h-6 bg-emerald-500 rounded-full animate-pulse"></div>}
                 Escáner de Productos
             </h3>
             <button onClick={onClose} className={`p-2 rounded-lg transition ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-200'}`}>
@@ -642,24 +675,44 @@ const ScannerModal = ({ isOpen, onClose, onScan, darkMode }: { isOpen: boolean, 
         </div>
 
         <div className="p-6 bg-black relative flex items-center justify-center min-h-[300px]">
-            <div id="reader" className="w-full max-w-[300px]"></div>
-            <div className="absolute pointer-events-none border-4 border-emerald-500/50 w-64 h-64 rounded-lg border-dashed animate-spin-slow"></div>
+            {error ? (
+              <div className="text-center text-white p-6">
+                <AlertTriangle size={48} className="mx-auto mb-4 text-amber-500" />
+                <p className="text-lg font-semibold mb-2">Error de Cámara</p>
+                <p className="text-sm text-slate-300">{error}</p>
+                <button 
+                  onClick={onClose}
+                  className="mt-4 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <>
+                <div id="reader" className="w-full max-w-[400px]"></div>
+                {isScanning && (
+                  <div className="absolute pointer-events-none border-4 border-emerald-500/50 w-64 h-64 rounded-lg border-dashed"></div>
+                )}
+              </>
+            )}
         </div>
 
-        <div className={`p-6 text-center ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
-            <p className={`text-sm font-medium mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                Apunta el código de barras o QR a la cámara
-            </p>
-            <p className="text-xs opacity-60">
-                Asegúrate de tener buena iluminación
-            </p>
-            <button 
-                onClick={onClose}
-                className={`mt-4 px-6 py-2 rounded-lg font-bold transition ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}
-            >
-                Cancelar
-            </button>
-        </div>
+        {!error && (
+          <div className={`p-6 text-center ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+              <p className={`text-sm font-medium mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {isScanning ? 'Apunta el código de barras o QR a la cámara' : 'Iniciando cámara...'}
+              </p>
+              <p className="text-xs opacity-60">
+                  Asegúrate de tener buena iluminación
+              </p>
+              <button 
+                  onClick={onClose}
+                  className={`mt-4 px-6 py-2 rounded-lg font-bold transition ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}
+              >
+                  Cancelar
+              </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1103,6 +1156,7 @@ const WriteOffModule = ({
                                     className={`w-full border-slate-200 rounded-lg p-3 border outline-none focus:ring-2 focus:ring-red-100 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
                                 >
                                     <option value="Consumo">Consumo Interno / Entrega</option>
+				    <option value="Venta">Venta</option>
                                     <option value="Solicitud">Solicitud de Área</option>
                                     <option value="Deterioro">Deterioro / Daño</option>
                                     <option value="Vencimiento">Vencimiento</option>

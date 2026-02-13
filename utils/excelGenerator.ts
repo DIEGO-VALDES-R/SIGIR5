@@ -19,9 +19,8 @@ export const generateInventoryExcel = (products: Product[], categories: Category
   
   // HOJA 1: RESUMEN
   const summaryData = [
-    ['MINISTERIO DE DEFENSA NACIONAL'],
-    ['POLICÍA NACIONAL'],
-    ['REGIÓN DE POLICÍA No. 5 - LOGÍSTICA'],
+    ['IPHONESHOP'],
+    ['Sistema de Inventario de Tecnología'],
     [''],
     ['REPORTE DE INVENTARIO GENERAL'],
     [`Fecha: ${today}`],
@@ -104,7 +103,7 @@ export const generateInventoryExcel = (products: Product[], categories: Category
   alertSheet['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 25 }];
   XLSX.utils.book_append_sheet(workbook, alertSheet, 'Alertas');
   
-  XLSX.writeFile(workbook, `Inventario_PONAL_R5_${new Date().toISOString().split('T')[0]}.xlsx`);
+  XLSX.writeFile(workbook, `Inventario_IPHONESHOP_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
 // --- HISTORIAL DE TRANSACCIONES EN EXCEL ---
@@ -122,9 +121,8 @@ export const generateTransactionHistoryExcel = (transactions: Transaction[]) => 
   
   // HOJA 1: RESUMEN
   const summaryData = [
-    ['MINISTERIO DE DEFENSA NACIONAL'],
-    ['POLICÍA NACIONAL'],
-    ['REGIÓN DE POLICÍA No. 5 - LOGÍSTICA'],
+    ['IPHONESHOP'],
+    ['Sistema de Inventario de Tecnología'],
     [''],
     ['HISTORIAL DE SALIDAS Y BAJAS'],
     [`Fecha: ${today}`],
@@ -199,7 +197,7 @@ export const generateTransactionHistoryExcel = (transactions: Transaction[]) => 
   reasonSheet['!cols'] = [{ wch: 35 }, { wch: 18 }, { wch: 15 }];
   XLSX.utils.book_append_sheet(workbook, reasonSheet, 'Por Motivo');
   
-  XLSX.writeFile(workbook, `Historial_Salidas_PONAL_R5_${new Date().toISOString().split('T')[0]}.xlsx`);
+  XLSX.writeFile(workbook, `Historial_Salidas_IPHONESHOP_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
 // --- ORDEN DE REPOSICIÓN EN EXCEL ---
@@ -224,9 +222,8 @@ export const generateReplenishmentExcel = (products: Product[]) => {
   
   // HOJA 1: RESUMEN
   const summaryData = [
-    ['MINISTERIO DE DEFENSA NACIONAL'],
-    ['POLICÍA NACIONAL'],
-    ['REGIÓN DE POLICÍA No. 5 - LOGÍSTICA'],
+    ['IPHONESHOP'],
+    ['Sistema de Inventario de Tecnología'],
     [''],
     ['ORDEN DE PEDIDO SUGERIDA'],
     [`Fecha: ${today}`],
@@ -287,7 +284,7 @@ export const generateReplenishmentExcel = (products: Product[]) => {
     XLSX.utils.book_append_sheet(workbook, criticalSheet, 'Críticos');
   }
   
-  XLSX.writeFile(workbook, `Orden_Pedido_PONAL_R5_${new Date().toISOString().split('T')[0]}.xlsx`);
+  XLSX.writeFile(workbook, `Orden_Pedido_IPHONESHOP_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
 // --- REPORTE COMPLETO ---
@@ -301,10 +298,8 @@ export const generateCompleteExcel = (
   // PORTADA
   const coverData = [
     [''], [''],
-    ['MINISTERIO DE DEFENSA NACIONAL'],
-    ['POLICÍA NACIONAL DE COLOMBIA'],
-    ['REGIÓN DE POLICÍA No. 5'],
-    ['LOGÍSTICA'],
+    ['IPHONESHOP'],
+    ['Sistema de Inventario de Tecnología'],
     [''], [''],
     ['REPORTE INTEGRAL DE INVENTARIO'],
     [''],
@@ -317,7 +312,7 @@ export const generateCompleteExcel = (
     ['- Orden de Reposición'],
     ['- Alertas y Productos Críticos'],
     [''], [''],
-    ['Documento de uso oficial - Manejo confidencial']
+    ['Documento de uso interno - IPHONESHOP']
   ];
   
   const coverSheet = XLSX.utils.aoa_to_sheet(coverData);
@@ -335,5 +330,5 @@ export const generateCompleteExcel = (
   const invSheet = XLSX.utils.aoa_to_sheet([inventoryHeaders, ...inventoryData]);
   XLSX.utils.book_append_sheet(workbook, invSheet, 'Inventario');
   
-  XLSX.writeFile(workbook, `Reporte_Completo_PONAL_R5_${new Date().toISOString().split('T')[0]}.xlsx`);
+  XLSX.writeFile(workbook, `Reporte_Completo_IPHONESHOP_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
