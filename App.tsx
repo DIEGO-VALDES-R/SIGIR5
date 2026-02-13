@@ -749,6 +749,8 @@ const InventoryList = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isScannerOpen, setScannerOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewProduct, setViewProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     if (initialCategoryFilter) setCategoryFilter(initialCategoryFilter);
