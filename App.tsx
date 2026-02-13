@@ -358,6 +358,31 @@ const UserManagement = ({ users, onAddUser, currentUser, darkMode }: { users: Us
 // --- Product Modal (Add/Edit/View) ---
 const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave, userRole, darkMode }: any) => {
     const [formData, setFormData] = useState<Partial<Product>>({
+    categoryId: categories[0]?.id,
+    stock: 0,
+    initialStock: 0,
+    minStock: 5,
+    status: ProductStatus.ACTIVE,
+    name: '',
+    description: '',
+    unit: 'Unidad',
+    price: 0,
+    location: '',
+    supplier: '',
+    imageUrl: '',
+    imagePublicId: '',
+    imageFile: null as File | null,
+    brand: '',
+    model: '',
+    warranty: '',
+    serial: ''  // ← AGREGAR ESTA LÍNEA
+});
+
+    useEffect(() => {
+        if (product) {
+            setFormData({ ...product });
+        } else {
+    setFormData({
         categoryId: categories[0]?.id,
         stock: 0,
         initialStock: 0,
@@ -374,33 +399,10 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
         imageFile: null as File | null,
         brand: '',
         model: '',
-        warranty: ''
+        warranty: '',
+        serial: ''  // ← AGREGAR ESTA LÍNEA
     });
-
-    useEffect(() => {
-        if (product) {
-            setFormData({ ...product });
-        } else {
-            setFormData({
-                categoryId: categories[0]?.id,
-                stock: 0,
-                initialStock: 0,
-                minStock: 5,
-                status: ProductStatus.ACTIVE,
-                name: '',
-                description: '',
-                unit: 'Unidad',
-                price: 0,
-                location: '',
-                supplier: '',
-        imageUrl: '',
-        imagePublicId: '',
-        imageFile: null as File | null,
-        brand: '',
-        model: '',
-        warranty: ''
-    });
-        }
+}
     }, [product, isOpen, categories]);
 
     if (!isOpen) return null;
@@ -423,24 +425,893 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
                     <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                         {product ? (isEditMode ? 'Editar Producto' : 'Detalles del Producto') : 'Nuevo Producto'}
                     </h3>
-                    <button
-                              onClick={(e) => { e.stopPropagation(); setViewProduct(product); setViewModalOpen(true); }}
-                              className={`p-2 rounded-full transition ${darkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-slate-700' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
-                              title="Ver detalle"
-                            >
-                              <Eye size={16} />
-                            </button>
-                            {currentUser.role === 'admin' && (
-                                <button onClick={(e) => { e.stopPropagation(); onDeleteProduct(product.id); }} className={`p-2 rounded-full transition ${darkMode ? 'text-slate-400 hover:text-red-400 hover:bg-slate-700' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}>
-                                    <Trash2 size={16} />
-                                </button>
-                            )}
+                    <button onClick={onClose} className={`transition-colors text-2xl leading-none ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>&times;</button>
+                </div>
+                
+                <form onSubmit={(e) => { e.preventDefault(); onSave(formData as Product); }} className="p-6 overflow-y-auto space-y-5">
+                    
+                    {/* Primary Info */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+        <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Categoría</label>
+        <select 
+            disabled={readOnly}
+            className={`w-full border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none border bg-white disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
+            value={formData.categoryId} 
+            onChange={e => handleCategoryChange(e.target.value)}
+        >
+            {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+    </div>
+    <div>
+        <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Código</label>
+        <input 
+            disabled={readOnly} 
+            required 
+            type="text" 
+            className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+            value={formData.code || ''} 
+            onChange={e => handleChange('code', e.target.value)} 
+        />
+    </div>
+</div>
+
+{/* ✅ NUEVO CAMPO DE SERIAL */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+        <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Serial / IMEI</label>
+        <div className="relative">
+            <input 
+                disabled={readOnly} 
+                type="text" 
+                className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                value={formData.serial || ''} 
+                onChange={e => handleChange('serial', e.target.value)}
+                placeholder="Escanea o escribe el serial"
+            />
+            {!readOnly && (
+                <button
+                    type="button"
+                    onClick={() => {
+                        toast.info('Presiona el botón 📷 Escanear en la barra superior');
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                    title="Escanear serial"
+                >
+                    📷
+                </button>
+            )}
+        </div>
+    </div>
+    <div>
+        {/* Espacio vacío para mantener grid de 2 columnas */}
+    </div>
+</div>
+
+<div>
+    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Nombre del Producto</label>
+    <input 
+        list="product-suggestions"
+        disabled={readOnly} 
+        required 
+        type="text" 
+        className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 font-semibold dark:bg-slate-700 dark:border-slate-600 dark:text-white ${darkMode ? 'text-white' : 'text-slate-800'}`}
+        value={formData.name || ''} 
+        onChange={e => handleChange('name', e.target.value)} 
+        placeholder="Ej. iPhone 15 Pro"
+    />
+    <datalist id="product-suggestions">
+        {suggestions.map((s: string, i: number) => <option key={i} value={s} />)}
+    </datalist>
+</div>
+
+<div>
+    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Descripción / Detalles</label>
+    <textarea 
+        disabled={readOnly}
+        className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
+        rows={2}
+        placeholder="Ej: 256GB Titanio Natural, Estado: Nuevo"
+        value={formData.description || ''}
+        onChange={e => handleChange('description', e.target.value)}
+    />
+</div>
+
+{/* ✅ AGREGAR AQUÍ - FUERA DEL DIV ANTERIOR */}
+<ImageUploader
+  currentImageUrl={formData.imageUrl}
+  onImageSelect={(file) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      imageFile: file 
+    }));
+  }}
+  disabled={readOnly}
+  darkMode={darkMode}
+/>
+
+                    {/* UBICACIÓN Y PROVEEDOR */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Ubicación</label>
+                            <input 
+                                disabled={readOnly} 
+                                type="text" 
+                                className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                                value={formData.location || ''} 
+                                onChange={e => handleChange('location', e.target.value)} 
+                                placeholder="Ej. Estantería A, Depósito..."
+                            />
                         </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
+                        <div>
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Proveedor</label>
+                            <input 
+                                disabled={readOnly} 
+                                type="text" 
+                                className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                                value={formData.supplier || ''} 
+                                onChange={e => handleChange('supplier', e.target.value)} 
+                                placeholder="Ej. Papelera S.A."
+                            />
+                        </div>
+                    </div>
+
+                    {/* Stock Section */}
+                    <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                        <h4 className={`text-sm font-bold mb-3 flex items-center gap-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}><Package size={16}/> Control de Inventario</h4>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Cant. Inicial</label>
+                                <input disabled={readOnly} type="number" min="0" className={`w-full border rounded p-2 text-sm text-center font-medium dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                                    value={formData.initialStock} onChange={e => handleChange('initialStock', parseInt(e.target.value) || 0)} />
+                            </div>
+                            <div>
+                                <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Cant. Actual</label>
+                                <input disabled={readOnly} type="number" min="0" className={`w-full border rounded p-2 text-sm text-center font-bold text-emerald-700 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-emerald-400`} 
+                                    value={formData.stock} onChange={e => handleChange('stock', parseInt(e.target.value) || 0)} />
+                            </div>
+                            <div>
+                                <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Diferencia</label>
+                                <div className={`w-full p-2 text-sm text-center font-bold border rounded ${darkMode ? 'bg-slate-800 border-slate-600 text-slate-300' : 'bg-slate-100'}`}>
+                                    {(formData.initialStock || 0) - (formData.stock || 0)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Unidad</label>
+                            <input disabled={readOnly} required type="text" className={`w-full border rounded p-2.5 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                                value={formData.unit || ''} onChange={e => handleChange('unit', e.target.value)} />
+                        </div>
+                        <div>
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Min Stock</label>
+                            <input disabled={readOnly} type="number" className={`w-full border rounded p-2.5 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                                value={formData.minStock || 0} onChange={e => handleChange('minStock', parseInt(e.target.value))} />
+                        </div>
+                        <div>
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Precio Unit.</label>
+                            <input disabled={readOnly} type="number" step="0.01" className={`w-full border rounded p-2.5 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                                value={formData.price || 0} onChange={e => handleChange('price', parseFloat(e.target.value))} />
+                        </div>
+                    </div>
+
+                    <div>
+                         <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Vencimiento</label>
+                         <input disabled={readOnly} type="date" className={`w-full border rounded p-2.5 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                            value={formData.expirationDate || ''} onChange={e => handleChange('expirationDate', e.target.value)} />
+                    </div>
+
+                    {!readOnly && (
+                        <div className="pt-2">
+                            <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-emerald-200 transition-all">
+                                {product && product.id ? 'Guardar Cambios' : 'Crear Producto'}
+                            </button>
+                        </div>
+                    )}
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// --- Scanner Component ---
+const ScannerModal = ({ isOpen, onClose, onScan, darkMode }: { isOpen: boolean, onClose: () => void, onScan: (decodedText: string) => void, darkMode: boolean }) => {
+  const [error, setError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  
+  useEffect(() => {
+    let html5QrCode: Html5Qrcode | null = null;
+
+    const startScanner = async () => {
+      try {
+        setError(null);
+        setIsScanning(true);
+        
+        html5QrCode = new Html5Qrcode("reader");
+        
+        const config = { 
+          fps: 10, 
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        };
+        
+        // Intentar usar la cámara trasera primero
+        await html5QrCode.start(
+          { facingMode: "environment" }, 
+          config, 
+          (decodedText) => {
+            console.log("Código detectado:", decodedText);
+            onScan(decodedText);
+            toast.success('Código detectado', { icon: '📷' });
+            
+            if(html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    setIsScanning(false);
+                    onClose(); 
+                }).catch(err => console.error("Error al detener", err));
+            }
+          },
+          (errorMessage) => {
+            // Ignorar errores de escaneo continuo
+          }
+        );
+        
+        setIsScanning(true);
+        
+      } catch (err: any) {
+        console.error("Error iniciando escáner", err);
+        setIsScanning(false);
+        
+        // Mensajes de error específicos
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setError('Permiso de cámara denegado. Por favor, permite el acceso a la cámara.');
+          toast.error("Permiso de cámara denegado");
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          setError('No se encontró ninguna cámara en este dispositivo.');
+          toast.error("No se encontró cámara");
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          setError('La cámara está siendo usada por otra aplicación.');
+          toast.error("Cámara en uso");
+        } else {
+          setError('Error al acceder a la cámara. Intenta desde un dispositivo móvil.');
+          toast.error("Error al acceder a la cámara");
+        }
+      }
+    };
+
+    if (isOpen) {
+      // Pequeño delay para asegurar que el elemento DOM está listo
+      setTimeout(startScanner, 100);
+    } else {
+      if (html5QrCode) {
+        html5QrCode.stop().catch(err => console.log(err));
+        setIsScanning(false);
+      }
+    }
+
+    return () => {
+      if (html5QrCode) {
+        html5QrCode.stop().catch(err => console.log(err));
+        setIsScanning(false);
+      }
+    };
+  }, [isOpen, onScan, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+      <div className={`rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col transition-colors ${darkMode ? 'bg-slate-800 text-white' : 'bg-white text-slate-900'}`}>
+        <div className={`p-4 border-b flex justify-between items-center ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+            <h3 className={`text-lg font-bold flex items-center gap-2`}>
+                {isScanning && <div className="w-2 h-6 bg-emerald-500 rounded-full animate-pulse"></div>}
+                Escáner de Productos
+            </h3>
+            <button onClick={onClose} className={`p-2 rounded-lg transition ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-200'}`}>
+                ✕
+            </button>
+        </div>
+
+        <div className="p-6 bg-black relative flex items-center justify-center min-h-[300px]">
+            {error ? (
+              <div className="text-center text-white p-6">
+                <AlertTriangle size={48} className="mx-auto mb-4 text-amber-500" />
+                <p className="text-lg font-semibold mb-2">Error de Cámara</p>
+                <p className="text-sm text-slate-300">{error}</p>
+                <button 
+                  onClick={onClose}
+                  className="mt-4 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <>
+                <div id="reader" className="w-full max-w-[400px]"></div>
+                {isScanning && (
+                  <div className="absolute pointer-events-none border-4 border-emerald-500/50 w-64 h-64 rounded-lg border-dashed"></div>
+                )}
+              </>
+            )}
+        </div>
+
+        {!error && (
+          <div className={`p-6 text-center ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+              <p className={`text-sm font-medium mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {isScanning ? 'Apunta el código de barras o QR a la cámara' : 'Iniciando cámara...'}
+              </p>
+              <p className="text-xs opacity-60">
+                  Asegúrate de tener buena iluminación
+              </p>
+              <button 
+                  onClick={onClose}
+                  className={`mt-4 px-6 py-2 rounded-lg font-bold transition ${darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}
+              >
+                  Cancelar
+              </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- Inventory Component ---
+
+
+
+// ============================================================
+// COMPONENTE: ProductViewModal - IPHONESHOP
+// Pegar en App.tsx ANTES del componente InventoryList
+// ============================================================
+
+const ProductViewModal = ({
+  isOpen,
+  onClose,
+  product,
+  categories,
+  transactions,
+  darkMode,
+  onEdit
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  product: Product | null;
+  categories: Category[];
+  transactions: Transaction[];
+  darkMode: boolean;
+  onEdit: () => void;
+}) => {
+  if (!isOpen || !product) return null;
+
+  const category = categories.find(c => c.id === product.categoryId);
+  const alert = getAlertLevel(product);
+  const difference = (product.initialStock || 0) - product.stock;
+
+  const productTransactions = transactions
+    .filter(tx => tx.productId === product.id)
+    .slice(0, 10);
+
+  const stockPercent = product.initialStock > 0
+    ? Math.min(Math.round((product.stock / product.initialStock) * 100), 100)
+    : 0;
+
+  const alertBadge: Record<string, string> = {
+    [AlertLevel.OUT_OF_STOCK]:  'bg-slate-800 text-white',
+    [AlertLevel.EXPIRED]:       'bg-red-500 text-white',
+    [AlertLevel.LOW_STOCK]:     'bg-orange-400 text-white',
+    [AlertLevel.EXPIRING_SOON]: 'bg-yellow-400 text-slate-900',
+    [AlertLevel.NONE]:          'bg-emerald-500 text-white',
+  };
+
+  const stockBarColor =
+    stockPercent === 0   ? 'bg-slate-500' :
+    stockPercent <= 30   ? 'bg-red-500'   :
+    stockPercent <= 60   ? 'bg-amber-400' : 'bg-emerald-500';
+
+  const InfoRow = ({ label, value }: { label: string; value?: string | null }) => {
+    if (!value) return null;
+    return (
+      <div className={`flex flex-col gap-0.5 p-3 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+        <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
+        <span className="text-sm font-medium">{value}</span>
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className={`rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh] ${darkMode ? 'bg-slate-800 text-white' : 'bg-white text-slate-900'}`}>
+
+        {/* HEADER */}
+        <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-full ${alertBadge[alert] ?? alertBadge[AlertLevel.NONE]}`}>
+              {alert === AlertLevel.NONE ? 'OK' : alert}
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold truncate">{product.name}</h3>
+              {(product.brand || product.model) && (
+                <p className={`text-xs truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {[product.brand, product.model].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-3">
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition"
+            >
+              <Edit size={14} /> Editar
+            </button>
+            <button
+              onClick={onClose}
+              className={`p-2 rounded-lg transition text-xl leading-none ${darkMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-200 text-slate-500'}`}
+            >
+              x
+            </button>
+          </div>
+        </div>
+
+        {/* BODY */}
+        <div className="overflow-y-auto flex-1">
+
+          {/* BLOQUE 1: imagen + datos basicos */}
+          <div className={`grid grid-cols-1 md:grid-cols-2 border-b ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+
+            {/* Imagen */}
+            <div className={`flex items-center justify-center p-6 border-b md:border-b-0 md:border-r ${darkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
+              {product.imageUrl ? (
+                <img
+                  src={product.imageUrl}
+                  alt={product.name}
+                  className="max-h-56 max-w-full object-contain rounded-xl shadow-md"
+                />
+              ) : (
+                <div className={`flex flex-col items-center justify-center w-48 h-48 rounded-2xl border-2 border-dashed ${darkMode ? 'border-slate-600 text-slate-500' : 'border-slate-300 text-slate-400'}`}>
+                  <Package size={48} className="mb-2 opacity-30" />
+                  <span className="text-sm">Sin imagen</span>
+                </div>
+              )}
+            </div>
+
+            {/* Datos */}
+            <div className="p-5 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <span className={`text-xs font-mono px-2 py-1 rounded ${darkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                  {product.code}
+                </span>
+                {category && (
+                  <span className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-emerald-900 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {category.name}
+                  </span>
+                )}
+                {product.status && (
+                  <span className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
+                    {product.status}
+                  </span>
+                )}
+              </div>
+
+              {product.description && (
+                <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{product.description}</p>
+              )}
+
+              {/* Barra de stock */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>Stock actual</span>
+                  <span className="font-bold">{product.stock} / {product.initialStock} {product.unit}</span>
+                </div>
+                <div className={`w-full h-2.5 rounded-full ${darkMode ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                  <div className={`h-2.5 rounded-full transition-all ${stockBarColor}`} style={{ width: `${stockPercent}%` }} />
+                </div>
+                <div className="flex justify-between text-xs mt-1">
+                  <span className={darkMode ? 'text-slate-500' : 'text-slate-400'}>Min: {product.minStock}</span>
+                  <span className={`font-semibold ${stockBarColor.replace('bg-', 'text-')}`}>{stockPercent}%</span>
+                </div>
+              </div>
+
+              {/* Precios */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className={`rounded-lg p-3 ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                  <div className={`text-xs mb-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Precio unitario</div>
+                  <div className="font-bold text-emerald-500">${(product.price ?? 0).toLocaleString()}</div>
+                </div>
+                <div className={`rounded-lg p-3 ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                  <div className={`text-xs mb-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Valor en stock</div>
+                  <div className="font-bold">${((product.price ?? 0) * product.stock).toLocaleString()}</div>
+                </div>
+              </div>
+
+              {difference !== 0 && (
+                <div className={`flex items-center justify-between text-sm px-3 py-2 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                  <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>Diferencia vs inicial</span>
+                  <span className={`font-bold ${difference > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {difference > 0 ? `-${difference}` : `+${Math.abs(difference)}`} {product.unit}
+                  </span>
+                </div>
+              )}
+
+              {product.expirationDate && (
+                <div className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${darkMode ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>
+                  <Calendar size={14} />
+                  Vencimiento: {new Date(product.expirationDate).toLocaleDateString('es-ES')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* BLOQUE 2: ficha tecnica */}
+          {(product.brand || product.model || product.warranty || product.specifications || product.location || product.supplier) && (
+            <div className={`px-6 py-5 border-b ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <h4 className={`text-xs font-bold uppercase tracking-widest mb-3 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Ficha Tecnica
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <InfoRow label="Marca"     value={product.brand} />
+                <InfoRow label="Modelo"    value={product.model} />
+                <InfoRow label="Garantia"  value={product.warranty} />
+                <InfoRow label="Ubicacion" value={product.location} />
+                <InfoRow label="Proveedor" value={product.supplier} />
+                {product.specifications && (
+                  <div className={`col-span-2 md:col-span-3 flex flex-col gap-0.5 p-3 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                    <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Especificaciones</span>
+                    <span className="text-sm font-medium whitespace-pre-wrap">{product.specifications}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* BLOQUE 3: historial */}
+          <div>
+            <div className={`px-6 py-3 flex items-center gap-3 border-b ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <ClipboardList size={16} className="text-slate-400 shrink-0" />
+              <h4 className={`font-semibold text-sm ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                Historial de Salidas
+              </h4>
+              {productTransactions.length > 0 && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${darkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
+                  {productTransactions.length}
+                </span>
+              )}
+            </div>
+
+            {productTransactions.length === 0 ? (
+              <div className={`px-6 py-10 text-center text-sm ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                <Package size={36} className="mx-auto mb-2 opacity-25" />
+                Sin movimientos registrados para este producto.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className={`text-xs uppercase tracking-wider ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                    <tr>
+                      <th className="px-4 py-3 text-left">Fecha</th>
+                      <th className="px-4 py-3 text-center">Cant.</th>
+                      <th className="px-4 py-3 text-left">Motivo</th>
+                      <th className="px-4 py-3 text-left">Destino</th>
+                      <th className="px-4 py-3 text-left">Recibio</th>
+                      <th className="px-4 py-3 text-left">Usuario</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y ${darkMode ? 'divide-slate-700' : 'divide-slate-100'}`}>
+                    {productTransactions.map(tx => (
+                      <tr key={tx.id} className={`transition-colors ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
+                        <td className={`px-4 py-3 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          <div>{new Date(tx.date).toLocaleDateString('es-ES')}</div>
+                          <div className="text-xs opacity-60">
+                            {new Date(tx.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="font-bold text-red-500">-{tx.quantity}</span>
+                        </td>
+                        <td className={`px-4 py-3 max-w-[160px] ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                          <span className="block truncate">{tx.reason || '-'}</span>
+                        </td>
+                        <td className={`px-4 py-3 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {tx.destination || '-'}
+                        </td>
+                        <td className={`px-4 py-3 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {tx.receiver || '-'}
+                        </td>
+                        <td className={`px-4 py-3 text-xs font-mono ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {tx.user || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* FOOTER */}
+        <div className={`px-6 py-3 border-t shrink-0 flex justify-between items-center text-xs ${darkMode ? 'border-slate-700 bg-slate-900 text-slate-500' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
+          <span>ID: <span className="font-mono">{product.id}</span></span>
+          {(product as any).created_at && (
+            <span>Creado: {new Date((product as any).created_at).toLocaleDateString('es-ES')}</span>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+const InventoryList = ({ 
+  products, 
+  categories,
+  onAddProduct,
+  onEditProduct,
+  onDeleteProduct,
+  onImport,
+  initialCategoryFilter,
+  currentUser,
+  darkMode
+}: { 
+  products: Product[], 
+  categories: Category[],
+  onAddProduct: (p: Product) => void,
+  onEditProduct: (p: Product) => void,
+  onDeleteProduct: (id: string) => void,
+  onImport: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  initialCategoryFilter: string | null,
+  currentUser: User,
+  darkMode: boolean
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  
+  // Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isScannerOpen, setScannerOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewProduct, setViewProduct] = useState<Product | null>(null);
+
+  useEffect(() => {
+    if (initialCategoryFilter) setCategoryFilter(initialCategoryFilter);
+  }, [initialCategoryFilter]);
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          p.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCat = categoryFilter === 'all' || p.categoryId === categoryFilter;
+    return matchesSearch && matchesCat;
+  });
+
+  const handleOpenCreate = () => {
+    setSelectedProduct(null);
+    setIsEditMode(true);
+    setModalOpen(true);
+  };
+
+  const handleRowClick = (product: Product) => {
+    setSelectedProduct(product);
+    setIsEditMode(true); 
+    setModalOpen(true);
+  };
+
+  const handleSaveFromModal = (productData: Product) => {
+    if (selectedProduct && selectedProduct.id) {
+        onEditProduct(productData);
+    } else {
+        const newId = `prod_${Date.now()}`;
+        onAddProduct({ ...productData, id: newId });
+    }
+    setModalOpen(false);
+  };
+
+  const switchToEdit = () => {
+      setIsEditMode(true);
+  };
+
+  const handleScanSuccess = (decodedCode: string) => {
+    setSearchTerm(decodedCode);
+    toast.success(`Buscando código: ${decodedCode}`);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Inventario General</h2>
+        <div className="flex gap-2 w-full md:w-auto flex-wrap">
+            {/* Botón PDF */}
+            <button 
+                onClick={() => generateInventoryPDF(filteredProducts, categories)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium shadow-md">
+                <FileDown size={18} /> PDF
+            </button>
+            
+            {/* Botón Excel */}
+            <button 
+                onClick={() => generateInventoryExcel(filteredProducts, categories)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium shadow-md">
+                <FileSpreadsheet size={18} /> Excel
+            </button>
+
+            {/* Botón Importar */}
+            <div className="relative">
+                <input 
+                    type="file" 
+                    accept=".xlsx, .xls, .csv" 
+                    onChange={(e) => {
+                        onImport(e);
+                        e.target.value = ''; 
+                    }}
+                    className="hidden" 
+                    id="importInput"
+                />
+                <label 
+                    htmlFor="importInput"
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold shadow-md cursor-pointer border border-amber-400"
+                >
+                    📥 Importar Excel
+                </label>
+            </div>
+
+            {/* Botón Escáner */}
+            <button 
+                onClick={() => setScannerOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium shadow-md">
+                📷 Escanear
+            </button>
+
+            {currentUser.role === 'admin' && (
+                <button 
+                    onClick={handleOpenCreate}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium shadow-md shadow-emerald-200">
+                    <Plus size={18} /> Nuevo Producto
+                </button>
+            )}
+        </div>
+      </div>
+
+      <div className={`rounded-xl shadow-sm border overflow-hidden flex flex-col transition-colors ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        {/* Filters */}
+        <div className={`p-4 border-b flex flex-col md:flex-row items-center gap-3 ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+          <div className="relative flex-1 w-full">
+            <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${darkMode ? 'text-slate-400' : 'text-slate-400'}`} />
+            <input 
+                type="text" 
+                placeholder="Buscar por nombre, código o descripción..." 
+                className={`w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <select 
+            className={`w-full md:w-64 py-2 px-3 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="all">Todas las Categorías</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className={`${darkMode ? 'bg-slate-700 text-slate-200' : 'bg-slate-50 text-slate-500'} font-semibold uppercase tracking-wider text-xs`}>
+              <tr>
+		<th className="px-6 py-4 w-20">Imagen</th>  {/* ← NUEVA COLUMNA */}
+                <th className="px-6 py-4">Producto</th>
+                <th className="px-6 py-4">Categoría</th>
+                <th className="px-6 py-4">Ubicación</th>
+                <th className="px-6 py-4">Proveedor</th>
+                <th className="px-6 py-4 text-center">Inicial</th>
+                <th className="px-6 py-4 text-center">Actual</th>
+                <th className="px-6 py-4 text-center">Dif.</th>
+                <th className="px-6 py-4 text-center">Estado</th>
+                <th className="px-6 py-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y ${darkMode ? 'divide-slate-700' : 'divide-slate-100'}`}>
+  {filteredProducts.map(product => {
+    const category = categories.find(c => c.id === product.categoryId);
+    const alert = getAlertLevel(product);
+    const difference = (product.initialStock || 0) - product.stock;
+    
+    return (
+      <tr key={product.id} className={`hover:${darkMode ? 'bg-slate-700' : 'bg-slate-50'} cursor-pointer group`} onClick={() => handleRowClick(product)}>
+        
+        {/* ✅ CELDA DE IMAGEN */}
+        <td className="px-6 py-4">
+          {product.imageUrl ? (
+            <img 
+              src={product.imageUrl} 
+              alt={product.name}
+              className="w-14 h-14 object-cover rounded-lg shadow-sm border border-slate-200 dark:border-slate-600"
+            />
+          ) : (
+            <div className={`w-14 h-14 flex items-center justify-center rounded-lg border-2 border-dashed ${darkMode ? 'border-slate-600 bg-slate-800' : 'border-slate-300 bg-slate-50'}`}>
+              <Package size={20} className="opacity-30" />
+            </div>
+          )}
+        </td>
+        
+        {/* PRODUCTO */}
+        <td className="px-6 py-4">
+            <div className={`font-medium ${darkMode ? 'text-white' : 'text-slate-900'}`}>{product.name}</div>
+            <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{product.description}</div>
+            <div className={`text-xs font-mono mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{product.code}</div>
+        </td>
+        
+        {/* CATEGORÍA */}
+        <td className={`px-6 py-4 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+            <span className={`inline-block px-2 py-1 rounded text-xs ${darkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>{category?.name}</span>
+        </td>
+        
+        {/* UBICACIÓN */}
+        <td className={`px-6 py-4 text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            {product.location || '-'}
+        </td>
+        
+        {/* PROVEEDOR */}
+        <td className={`px-6 py-4 text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            {product.supplier || '-'}
+        </td>
+        
+        {/* INICIAL */}
+        <td className={`px-6 py-4 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{product.initialStock}</td>
+        
+        {/* ACTUAL */}
+        <td className="px-6 py-4 text-center">
+            <span className={`px-2 py-1 rounded font-bold ${
+                product.stock === 0 ? 'text-slate-200 bg-slate-800' : 
+                product.stock <= product.minStock ? 'text-red-600 bg-red-50' : 'text-slate-700'
+            }`}>
+                {product.stock}
+            </span>
+        </td>
+        
+        {/* DIFERENCIA */}
+        <td className={`px-6 py-4 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            <span className="text-xs font-mono">{difference > 0 ? `-${difference}` : difference}</span>
+        </td>
+        
+        {/* ESTADO */}
+        <td className="px-6 py-4 text-center">
+            {alert !== AlertLevel.NONE ? (
+                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
+                    alert === AlertLevel.OUT_OF_STOCK ? 'bg-slate-800 text-white' :
+                    alert === AlertLevel.EXPIRED ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                }`}>
+                    <AlertTriangle size={12} /> {alert}
+                </span>
+            ) : (
+                <span className="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full">OK</span>
+            )}
+        </td>
+        
+        {/* ACCIONES */}
+        <td className="px-6 py-4 text-right">
+            <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
+                <button onClick={() => handleRowClick(product)} className={`p-2 rounded-full transition ${darkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-slate-700' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}>
+                    <Eye size={16} />
+                </button>
+                {currentUser.role === 'admin' && (
+                    <button onClick={(e) => { e.stopPropagation(); onDeleteProduct(product.id); }} className={`p-2 rounded-full transition ${darkMode ? 'text-slate-400 hover:text-red-400 hover:bg-slate-700' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}>
+                        <Trash2 size={16} />
+                    </button>
+                )}
+            </div>
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
           </table>
         </div>
       </div>

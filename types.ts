@@ -21,24 +21,25 @@ export interface Product {
   id: string;
   code: string;
   name: string;
-  description: string;
+  description?: string;
   categoryId: string;
   initialStock: number;
   stock: number;
   minStock: number;
   unit: string;
   price: number;
-  expirationDate?: string; // Fecha de vencimiento de garantía
+  expirationDate?: string;
   status: ProductStatus;
   location?: string;
   supplier?: string;
-  // NUEVOS CAMPOS PARA TECNOLOGÍA
   imageUrl?: string;
-  imagePublicId?: string; // ID en Supabase Storage
-  brand?: string; // Marca (Apple, Samsung, etc.)
-  model?: string; // Modelo específico
-  warranty?: string; // Garantía (12 meses, 24 meses)
-  specifications?: string; // Especificaciones técnicas JSON
+  imagePublicId?: string;
+  imageFile?: File | null;
+  brand?: string;
+  model?: string;
+  warranty?: string;
+  specifications?: string;
+  serial?: string;  // ← AGREGAR ESTA LÍNEA
 }
 
 export enum TransactionType {
