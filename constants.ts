@@ -1,94 +1,169 @@
 import { Category, Product, ProductStatus, User } from './types';
 
-export const INITIAL_CATEGORIES: Category[] = [
-  { id: 'cat_1', name: 'Aseo y Limpieza', description: 'Desinfectantes, papel, bolsas' },
-  { id: 'cat_2', name: 'Oficina', description: 'Papelería, toners, escritura' },
-  { id: 'cat_3', name: 'Cocina y Cafetería', description: 'Insumos, descartables' },
-  { id: 'cat_4', name: 'Tecnología', description: 'Periféricos, cables, repuestos' },
-  { id: 'cat_5', name: 'Vehículos', description: 'Lubricantes, herramientas básicas' },
-];
+export const CURRENCY_SYMBOL = '$';
+export const EXPIRATION_WARNING_DAYS = 90; // Garantía de productos
 
-// Helper to calculate previous dates or future dates
-const futureDate = (days: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    return d.toISOString().split('T')[0];
-};
+// Categorías de tecnología
+export const INITIAL_CATEGORIES: Category[] = [
+  { id: 'cat_1', name: 'Smartphones', description: 'iPhone, Samsung, Google Pixel' },
+  { id: 'cat_2', name: 'Tablets', description: 'iPad, Samsung Tab, Surface' },
+  { id: 'cat_3', name: 'Laptops', description: 'MacBook, Surface, ThinkPad' },
+  { id: 'cat_4', name: 'Accesorios', description: 'Cables, cargadores, fundas' },
+  { id: 'cat_5', name: 'Audio', description: 'AirPods, audífonos, parlantes' },
+  { id: 'cat_6', name: 'Smartwatches', description: 'Apple Watch, Galaxy Watch' },
+];
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
     id: 'prod_1',
-    code: 'LIM-001',
-    name: 'Desinfectante Multiusos',
-    description: 'Galón 5L, Aroma Lavanda',
+    code: 'IPH-15-PRO-256-TIT',
+    name: 'iPhone 15 Pro',
+    description: '256GB Titanio Natural',
     categoryId: 'cat_1',
-    initialStock: 10,
-    stock: 5,
-    minStock: 10,
-    unit: 'Galón',
-    price: 15.50,
-    expirationDate: '2024-12-01',
+    initialStock: 15,
+    stock: 12,
+    minStock: 5,
+    unit: 'Unidad',
+    price: 1299.99,
     status: ProductStatus.ACTIVE,
-    location: 'Estante A1'
+    imageUrl: '', // Se agregará
+    warranty: '12 meses',
+    brand: 'Apple',
+    model: 'A2848'
   },
   {
     id: 'prod_2',
-    code: 'OFI-001',
-    name: 'Papel Bond',
-    description: 'Tamaño A4, 75g, Blancura 98%',
-    categoryId: 'cat_2',
-    initialStock: 200,
-    stock: 150,
-    minStock: 20,
-    unit: 'Resma',
-    price: 4.20,
+    code: 'IPH-15-128-BLU',
+    name: 'iPhone 15',
+    description: '128GB Azul',
+    categoryId: 'cat_1',
+    initialStock: 20,
+    stock: 18,
+    minStock: 8,
+    unit: 'Unidad',
+    price: 899.99,
     status: ProductStatus.ACTIVE,
-    location: 'Bodega 2'
+    imageUrl: '',
+    warranty: '12 meses',
+    brand: 'Apple',
+    model: 'A2846'
   },
   {
     id: 'prod_3',
-    code: 'COC-005',
-    name: 'Café Grano Tostado',
-    description: 'Bolsa 1kg, Tueste Medio',
-    categoryId: 'cat_3',
+    code: 'IPAD-AIR-M2-256',
+    name: 'iPad Air M2',
+    description: '256GB WiFi Space Gray',
+    categoryId: 'cat_2',
     initialStock: 10,
-    stock: 2,
-    minStock: 5,
-    unit: 'Bolsa',
-    price: 12.00,
-    expirationDate: futureDate(20),
+    stock: 7,
+    minStock: 3,
+    unit: 'Unidad',
+    price: 749.99,
     status: ProductStatus.ACTIVE,
-    location: 'Cocina'
+    imageUrl: '',
+    warranty: '12 meses',
+    brand: 'Apple',
+    model: 'MUWC3LL/A'
   },
   {
     id: 'prod_4',
-    code: 'TEC-020',
-    name: 'Mouse Inalámbrico',
-    description: 'Logitech M170, Negro',
-    categoryId: 'cat_4',
-    initialStock: 15,
-    stock: 8,
-    minStock: 5,
+    code: 'AIRPODS-PRO-2',
+    name: 'AirPods Pro (2nd Gen)',
+    description: 'USB-C Cancelación de ruido',
+    categoryId: 'cat_5',
+    initialStock: 30,
+    stock: 22,
+    minStock: 10,
     unit: 'Unidad',
-    price: 25.00,
+    price: 249.99,
     status: ProductStatus.ACTIVE,
-    location: 'Armario TI'
+    imageUrl: '',
+    warranty: '12 meses',
+    brand: 'Apple',
+    model: 'MTJV3AM/A'
   },
+  {
+    id: 'prod_5',
+    code: 'MACBOOK-AIR-M3',
+    name: 'MacBook Air M3',
+    description: '15" 16GB RAM 512GB SSD',
+    categoryId: 'cat_3',
+    initialStock: 8,
+    stock: 5,
+    minStock: 2,
+    unit: 'Unidad',
+    price: 1699.99,
+    status: ProductStatus.ACTIVE,
+    imageUrl: '',
+    warranty: '12 meses',
+    brand: 'Apple',
+    model: 'MRYN3LL/A'
+  }
 ];
 
 export const INITIAL_USERS: User[] = [
-    { id: 'u1', username: 'admin', password: 'admin5', name: 'Administrador Principal', role: 'admin' },
-    { id: 'u2', username: 'visitante', password: '123', name: 'Usuario Vista', role: 'viewer' }
+  {
+    id: 'u1',
+    username: 'admin',
+    password: 'admin',
+    name: 'Administrador',
+    role: 'admin'
+  },
+  {
+    id: 'u2',
+    username: 'vendedor',
+    password: '123',
+    name: 'Vendedor',
+    role: 'viewer'
+  }
 ];
 
-// Suggestions for autocomplete
+// Productos predefinidos por categoría para autocompletar
 export const PREDEFINED_PRODUCTS: Record<string, string[]> = {
-    'cat_1': ['Cloro', 'Detergente en Polvo', 'Jabón Líquido', 'Papel Higiénico', 'Toallas de Papel', 'Bolsas de Basura', 'Limpia Vidrios'],
-    'cat_2': ['Resma Carta', 'Resma Oficio', 'Bolígrafos Azul', 'Bolígrafos Negro', 'Marcadores', 'Grapas', 'Carpeta Archivadora', 'Toner HP', 'Notas Adhesivas'],
-    'cat_3': ['Azúcar', 'Café Instantáneo', 'Vasos Desechables', 'Servilletas', 'Agua Mineral', 'Té Filtrante'],
-    'cat_4': ['Teclado USB', 'Cable HDMI', 'Monitor 24"', 'Baterías AA', 'Baterías AAA', 'Limpiador de Contactos'],
-    'cat_5': ['Aceite Motor 10W30', 'Refrigerante', 'Líquido de Frenos', 'Shampoo Autos', 'Cera Pulidora']
+  'cat_1': [
+    'iPhone 15 Pro Max',
+    'iPhone 15 Pro',
+    'iPhone 15 Plus',
+    'iPhone 15',
+    'Samsung Galaxy S24 Ultra',
+    'Samsung Galaxy S24+',
+    'Google Pixel 8 Pro'
+  ],
+  'cat_2': [
+    'iPad Pro 12.9"',
+    'iPad Air M2',
+    'iPad 10th Gen',
+    'Samsung Galaxy Tab S9',
+    'Microsoft Surface Pro 9'
+  ],
+  'cat_3': [
+    'MacBook Pro 16" M3',
+    'MacBook Air 15" M3',
+    'MacBook Air 13" M2',
+    'Dell XPS 15',
+    'Lenovo ThinkPad X1 Carbon'
+  ],
+  'cat_4': [
+    'USB-C Cable 1m',
+    'Lightning Cable',
+    'Cargador 20W USB-C',
+    'Funda MagSafe',
+    'Protector de pantalla',
+    'Adaptador HDMI'
+  ],
+  'cat_5': [
+    'AirPods Pro 2nd Gen',
+    'AirPods Max',
+    'AirPods 3rd Gen',
+    'Sony WH-1000XM5',
+    'JBL Flip 6',
+    'HomePod mini'
+  ],
+  'cat_6': [
+    'Apple Watch Series 9',
+    'Apple Watch SE',
+    'Apple Watch Ultra 2',
+    'Samsung Galaxy Watch 6',
+    'Garmin Fenix 7'
+  ]
 };
-
-export const EXPIRATION_WARNING_DAYS = 30;
-export const CURRENCY_SYMBOL = '$';

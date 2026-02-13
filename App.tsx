@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   LayoutDashboard, 
   Package, 
@@ -41,6 +41,8 @@ import { supabase } from './supabaseClient';
 
 import { INITIAL_CATEGORIES, INITIAL_PRODUCTS, EXPIRATION_WARNING_DAYS, INITIAL_USERS, PREDEFINED_PRODUCTS } from './constants';
 import { Product, Category, Transaction, TransactionType, AlertLevel, ProductStatus, User, UserRole } from './types';
+import { ImageUploader } from './components/ImageUploader';
+import { uploadProductImage, deleteProductImage } from './utils/imageHandler';
 import { generateInventoryPDF, generateTransactionHistoryPDF, generateReplenishmentPDF } from './utils/pdfGenerator';
 import { 
   generateInventoryExcel,
@@ -98,8 +100,8 @@ const LoginScreen = ({ onLogin, users, darkMode }: { onLogin: (u: User) => void,
                     <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 ${darkMode ? 'bg-emerald-900 text-emerald-300' : 'bg-emerald-100 text-emerald-600'}`}>
                         <Package size={32} />
                     </div>
-                    <h1 className="text-2xl font-bold">SIGIR5</h1>
-                    <p className={`text-sm mt-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Sistema de Inventario de la Región de Policía No. 5</p>
+                    <h1 className="text-2xl font-bold">IPHONESHOP</h1>
+                    <p className={`text-sm mt-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Sistema de Inventario de Tecnología</p>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -366,7 +368,13 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
         unit: 'Unidad',
         price: 0,
         location: '',
-        supplier: ''
+        supplier: '',
+        imageUrl: '',
+        imagePublicId: '',
+        imageFile: null as File | null,
+        brand: '',
+        model: '',
+        warranty: ''
     });
 
     useEffect(() => {
@@ -384,8 +392,14 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
                 unit: 'Unidad',
                 price: 0,
                 location: '',
-                supplier: ''
-            });
+                supplier: '',
+        imageUrl: '',
+        imagePublicId: '',
+        imageFile: null as File | null,
+        brand: '',
+        model: '',
+        warranty: ''
+    });
         }
     }, [product, isOpen, categories]);
 
@@ -451,17 +465,30 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
                         </datalist>
                     </div>
 
-                    <div>
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Descripción / Detalles</label>
-                        <textarea 
-                            disabled={readOnly}
-                            className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
-                            rows={2}
-                            placeholder="Ej: Tamaño Oficio, Carta, Color..."
-                            value={formData.description || ''}
-                            onChange={e => handleChange('description', e.target.value)}
-                        />
-                    </div>
+                   <div>
+    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Descripción / Detalles</label>
+    <textarea 
+        disabled={readOnly}
+        className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
+        rows={2}
+        placeholder="Ej: Tamaño Oficio, Carta, Color..."
+        value={formData.description || ''}
+        onChange={e => handleChange('description', e.target.value)}
+    />
+</div>
+
+{/* ✅ AGREGAR AQUÍ - FUERA DEL DIV ANTERIOR */}
+<ImageUploader
+  currentImageUrl={formData.imageUrl}
+  onImageSelect={(file) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      imageFile: file 
+    }));
+  }}
+  disabled={readOnly}
+  darkMode={darkMode}
+/>
 
                     {/* UBICACIÓN Y PROVEEDOR */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1876,7 +1903,7 @@ export default function App() {
         <div className={`p-6 border-b ${darkMode ? 'border-slate-800' : 'border-slate-800'}`}>
           <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 text-white">
             <Package className="text-emerald-500" />
-            SIGIR5
+            IPHONESHOP
           </h1>
           
           <button 

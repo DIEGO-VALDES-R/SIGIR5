@@ -1,5 +1,7 @@
 {
-  "name": "SIGIR5",
-  "description": "Sistema de gestión de inventario interno con alertas de stock, vencimientos, control de bajas y generación de reportes.",
+  "name": "IPHONESHOP",
+  "description": "Sistema profesional de gestión de inventario para tiendas de tecnología con soporte de imágenes de productos",
+  "version": "2.0.0",
+  "author": "Diego Valdés",
   "requestFramePermissions": []
 }

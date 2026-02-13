@@ -12,9 +12,9 @@ export enum ProductStatus {
 export enum AlertLevel {
   NONE = 'None',
   LOW_STOCK = 'Low Stock',
-  EXPIRING_SOON = 'Expiring Soon',
-  EXPIRED = 'Expired',
-  OUT_OF_STOCK = 'Sin Inventario', // New status
+  EXPIRING_SOON = 'Garantía próxima a vencer',
+  EXPIRED = 'Garantía vencida',
+  OUT_OF_STOCK = 'Sin Inventario',
 }
 
 export interface Product {
@@ -28,9 +28,17 @@ export interface Product {
   minStock: number;
   unit: string;
   price: number;
-  expirationDate?: string;
+  expirationDate?: string; // Fecha de vencimiento de garantía
   status: ProductStatus;
   location?: string;
+  supplier?: string;
+  // NUEVOS CAMPOS PARA TECNOLOGÍA
+  imageUrl?: string;
+  imagePublicId?: string; // ID en Supabase Storage
+  brand?: string; // Marca (Apple, Samsung, etc.)
+  model?: string; // Modelo específico
+  warranty?: string; // Garantía (12 meses, 24 meses)
+  specifications?: string; // Especificaciones técnicas JSON
 }
 
 export enum TransactionType {
@@ -50,7 +58,7 @@ export interface Transaction {
   user: string;
   destination?: string;
   receiver?: string;
-  // NUEVOS CAMPOS PARA ARCHIVOS
+  // Campos para archivos adjuntos
   attachmentName?: string;
   attachmentUrl?: string;
   attachmentType?: string;
