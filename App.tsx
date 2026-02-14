@@ -1102,15 +1102,60 @@ const InventoryList = ({
     setModalOpen(true);
   };
 
-  const handleSaveFromModal = (productData: Product) => {
-    if (selectedProduct && selectedProduct.id) {
-        onEditProduct(productData);
-    } else {
-        const newId = `prod_${Date.now()}`;
-        onAddProduct({ ...productData, id: newId });
+  const handleSaveFromModal = async (productData: Product) => {
+    console.log('💾 handleSaveFromModal llamado');
+    console.log('📸 imageFile presente:', !!productData.imageFile);
+    
+    let imageUrl = productData.imageUrl;
+    let imagePublicId = productData.imagePublicId;
+
+    // 📸 SUBIR IMAGEN SI EXISTE UNA NUEVA
+    if (productData.imageFile) {
+        console.log('📤 Subiendo imagen...');
+        toast.loading('Subiendo imagen...', { id: 'upload-image' });
+        
+        const productId = selectedProduct?.id || `prod_${Date.now()}`;
+        const result = await uploadProductImage(productData.imageFile, productId);
+        
+        if (result) {
+            console.log('✅ Imagen subida:', result);
+            imageUrl = result.url;
+            imagePublicId = result.publicId;
+            
+            // 🗑️ Si es edición y había imagen anterior, eliminarla
+            if (selectedProduct?.imagePublicId && selectedProduct.imagePublicId !== imagePublicId) {
+                console.log('🗑️ Eliminando imagen anterior...');
+                await deleteProductImage(selectedProduct.imagePublicId);
+            }
+            
+            toast.dismiss('upload-image');
+            toast.success('Imagen subida correctamente');
+        } else {
+            console.error('❌ Error subiendo imagen');
+            toast.dismiss('upload-image');
+            toast.error('Error al subir la imagen');
+        }
     }
+
+    // Preparar producto final SIN imageFile
+    const { imageFile, ...finalProduct } = {
+        ...productData,
+        imageUrl,
+        imagePublicId
+    };
+
+    // Guardar en DB
+    if (selectedProduct && selectedProduct.id) {
+        console.log('✏️ Editando producto existente');
+        onEditProduct(finalProduct);
+    } else {
+        console.log('🆕 Creando nuevo producto');
+        const newId = `prod_${Date.now()}`;
+        onAddProduct({ ...finalProduct, id: newId });
+    }
+    
     setModalOpen(false);
-  };
+};
 
   const switchToEdit = () => {
       setIsEditMode(true);
@@ -2106,35 +2151,131 @@ export default function App() {
       toast('Sesión cerrada');
   };
 
- const addProduct = async (product: Product) => {
-    // Eliminar imageFile antes de enviar a Supabase
-    const { imageFile, ...productForDB } = product;
+// ✅ FUNCIÓN addProduct - FALTABA ESTA FUNCIÓN
+// ============================================================
+const addProduct = async (product: Product) => {
+    console.log('🆕 addProduct llamado con:', product);
+    console.log('📸 imageFile presente:', !!product.imageFile);
+    
+    let imageUrl = product.imageUrl;
+    let imagePublicId = product.imagePublicId;
+
+    // 📸 SUBIR IMAGEN SI EXISTE
+    if (product.imageFile) {
+        console.log('📤 Iniciando subida de imagen...');
+        toast.loading('Subiendo imagen...', { id: 'upload-image' });
+        
+        const result = await uploadProductImage(
+            product.imageFile,
+            product.id || `prod_${Date.now()}`
+        );
+        
+        if (result) {
+            console.log('✅ Imagen subida correctamente:', result);
+            imageUrl = result.url;
+            imagePublicId = result.publicId;
+            toast.dismiss('upload-image');
+            toast.success('Imagen subida correctamente');
+        } else {
+            console.error('❌ Falló la subida de imagen');
+            toast.dismiss('upload-image');
+            toast.error('Error al subir la imagen');
+        }
+    } else {
+        console.log('ℹ️ No hay imageFile para subir');
+    }
+
+    // Preparar producto SIN imageFile para la DB
+    const { imageFile, ...productForDB } = {
+        ...product,
+        imageUrl,
+        imagePublicId
+    };
+    
+    console.log('💾 Guardando en Supabase:', productForDB);
     
     setProducts(prev => [...prev, productForDB]);
     const { error } = await supabase.from('products').insert(productForDB);
     
     if (error) {
-      console.error('Error de Supabase:', error); // ← Agregar para ver el error exacto
-      toast.error('Error al guardar en base de datos');
+        console.error('❌ Error de Supabase al guardar producto:', error);
+        toast.error('Error al guardar en base de datos');
+        
+        // 🗑️ Si falla el guardado, eliminar la imagen subida
+        if (imagePublicId) {
+            console.log('🗑️ Limpiando imagen subida...');
+            await deleteProductImage(imagePublicId);
+        }
     } else {
+        console.log('✅ Producto guardado exitosamente');
         toast.success('Producto agregado');
-        logAudit('CREATED', { id: productForDB.id, name: productForDB.name, code: productForDB.code }, user);
+        logAudit('CREATED', { 
+            id: productForDB.id, 
+            name: productForDB.name, 
+            code: productForDB.code,
+            hasImage: !!imageUrl
+        }, user);
     }
 };
 
-  const editProduct = async (updatedProduct: Product) => {
-    const oldProduct = products.find(p => p.id === updatedProduct.id); 
+ const editProduct = async (updatedProduct: Product) => {
+    console.log('✏️ editProduct llamado con:', updatedProduct);
+    console.log('📸 imageFile presente:', !!updatedProduct.imageFile);
     
-    // Eliminar imageFile antes de enviar a Supabase
-    const { imageFile, ...productForDB } = updatedProduct;
+    const oldProduct = products.find(p => p.id === updatedProduct.id);
+    
+    let imageUrl = updatedProduct.imageUrl;
+    let imagePublicId = updatedProduct.imagePublicId;
+
+    // 📸 ACTUALIZAR IMAGEN SI HAY UNA NUEVA
+    if (updatedProduct.imageFile) {
+        console.log('📤 Actualizando imagen...');
+        toast.loading('Actualizando imagen...', { id: 'upload-image' });
+        
+        const result = await uploadProductImage(
+            updatedProduct.imageFile,
+            updatedProduct.id
+        );
+        
+        if (result) {
+            console.log('✅ Imagen actualizada:', result);
+            imageUrl = result.url;
+            imagePublicId = result.publicId;
+            
+            // 🗑️ Eliminar imagen anterior si existe y es diferente
+            if (oldProduct?.imagePublicId && oldProduct.imagePublicId !== imagePublicId) {
+                console.log('🗑️ Eliminando imagen anterior...');
+                await deleteProductImage(oldProduct.imagePublicId);
+            }
+            
+            toast.dismiss('upload-image');
+            toast.success('Imagen actualizada');
+        } else {
+            console.error('❌ Error actualizando imagen');
+            toast.dismiss('upload-image');
+            toast.error('Error al actualizar la imagen');
+        }
+    } else {
+        console.log('ℹ️ No hay nueva imagen para subir');
+    }
+    
+    // Preparar producto SIN imageFile para la DB
+    const { imageFile, ...productForDB } = {
+        ...updatedProduct,
+        imageUrl,
+        imagePublicId
+    };
+    
+    console.log('💾 Actualizando en Supabase:', productForDB);
     
     setProducts(prev => prev.map(p => p.id === updatedProduct.id ? productForDB : p));
     const { error } = await supabase.from('products').update(productForDB).eq('id', updatedProduct.id);
     
     if (error) {
-        console.error('Error de Supabase:', error); // ← Agregar para ver el error exacto
+        console.error('❌ Error de Supabase:', error);
         toast.error('Error al actualizar producto');
     } else {
+        console.log('✅ Producto actualizado exitosamente');
         toast.success('Producto actualizado');
         logAudit('UPDATED', { 
             id: productForDB.id, 
@@ -2142,7 +2283,8 @@ export default function App() {
             old_price: oldProduct?.price,
             new_price: productForDB.price,
             old_stock: oldProduct?.stock,
-            new_stock: productForDB.stock 
+            new_stock: productForDB.stock,
+            imageUpdated: !!updatedProduct.imageFile
         }, user);
     }
 };

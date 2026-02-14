@@ -12,15 +12,19 @@ export const uploadProductImage = async (
   file: File,
   productId: string
 ): Promise<{ url: string; publicId: string } | null> => {
+  console.log('🔵 uploadProductImage llamado:', { fileName: file.name, size: file.size, productId });
+  
   try {
     // Validar tipo de archivo
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
+      console.error('❌ Tipo de archivo inválido:', file.type);
       throw new Error('Tipo de archivo no válido. Solo se permiten JPG, PNG y WebP');
     }
 
     // Validar tamaño (máximo 5MB)
     if (file.size > 5 * 1024 * 1024) {
+      console.error('❌ Archivo muy grande:', file.size);
       throw new Error('El archivo es demasiado grande. Máximo 5MB');
     }
 
@@ -28,6 +32,8 @@ export const uploadProductImage = async (
     const fileExt = file.name.split('.').pop();
     const fileName = `${productId}_${Date.now()}.${fileExt}`;
     const filePath = `products/${fileName}`;
+
+    console.log('📤 Subiendo archivo a:', filePath);
 
     // Subir archivo
     const { data, error } = await supabase.storage
@@ -37,23 +43,29 @@ export const uploadProductImage = async (
         upsert: false
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error de Supabase Storage:', error);
+      throw error;
+    }
+
+    console.log('✅ Archivo subido exitosamente:', data);
 
     // Obtener URL pública
     const { data: urlData } = supabase.storage
       .from(BUCKET_NAME)
       .getPublicUrl(filePath);
 
+    console.log('🔗 URL pública generada:', urlData.publicUrl);
+
     return {
       url: urlData.publicUrl,
       publicId: filePath
     };
   } catch (error) {
-    console.error('Error subiendo imagen:', error);
+    console.error('💥 Error subiendo imagen:', error);
     return null;
   }
 };
-
 /**
  * Elimina una imagen de producto de Supabase Storage
  * @param publicId - Path de la imagen en storage
