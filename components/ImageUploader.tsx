@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { fileToBase64 } from '../utils/imageHandler';
 
@@ -19,9 +19,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ✅ FIX PRINCIPAL: sincronizar preview cuando cambia el producto
+  useEffect(() => {
+    setPreview(currentImageUrl || null);
+  }, [currentImageUrl]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    
     if (!file) return;
 
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -86,6 +90,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               src={preview} 
               alt="Preview" 
               className="w-full h-full object-contain"
+              onError={() => setPreview(null)} // ✅ si la URL falla, mostrar placeholder
             />
             {!disabled && (
               <button

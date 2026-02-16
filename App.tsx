@@ -34,7 +34,7 @@ import {
 } from 'recharts';
 import { Toaster, toast } from 'react-hot-toast';
 import { Html5Qrcode } from 'html5-qrcode';
-import * as XLSX from 'xlsx'; // Importación para leer Excel
+import * as XLSX from 'xlsx';
 
 // IMPORTANTE: Asegúrate de que esta ruta es correcta en tu proyecto
 import { supabase } from './supabaseClient';
@@ -358,31 +358,6 @@ const UserManagement = ({ users, onAddUser, currentUser, darkMode }: { users: Us
 // --- Product Modal (Add/Edit/View) ---
 const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave, userRole, darkMode }: any) => {
     const [formData, setFormData] = useState<Partial<Product>>({
-    categoryId: categories[0]?.id,
-    stock: 0,
-    initialStock: 0,
-    minStock: 5,
-    status: ProductStatus.ACTIVE,
-    name: '',
-    description: '',
-    unit: 'Unidad',
-    price: 0,
-    location: '',
-    supplier: '',
-    imageUrl: '',
-    imagePublicId: '',
-    imageFile: null as File | null,
-    brand: '',
-    model: '',
-    warranty: '',
-    serial: ''  // ← AGREGAR ESTA LÍNEA
-});
-
-    useEffect(() => {
-        if (product) {
-            setFormData({ ...product });
-        } else {
-    setFormData({
         categoryId: categories[0]?.id,
         stock: 0,
         initialStock: 0,
@@ -400,9 +375,34 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
         brand: '',
         model: '',
         warranty: '',
-        serial: ''  // ← AGREGAR ESTA LÍNEA
+        serial: ''
     });
-}
+
+    useEffect(() => {
+        if (product) {
+            setFormData({ ...product });
+        } else {
+            setFormData({
+                categoryId: categories[0]?.id,
+                stock: 0,
+                initialStock: 0,
+                minStock: 5,
+                status: ProductStatus.ACTIVE,
+                name: '',
+                description: '',
+                unit: 'Unidad',
+                price: 0,
+                location: '',
+                supplier: '',
+                imageUrl: '',
+                imagePublicId: '',
+                imageFile: null as File | null,
+                brand: '',
+                model: '',
+                warranty: '',
+                serial: ''
+            });
+        }
     }, [product, isOpen, categories]);
 
     if (!isOpen) return null;
@@ -428,107 +428,107 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
                     <button onClick={onClose} className={`transition-colors text-2xl leading-none ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>&times;</button>
                 </div>
                 
-                <form onSubmit={(e) => { e.preventDefault(); onSave(formData as Product); }} className="p-6 overflow-y-auto space-y-5">
+                <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); onSave(formData as Product); }} className="p-6 overflow-y-auto space-y-5">
                     
                     {/* Primary Info */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-    <div>
-        <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Categoría</label>
-        <select 
-            disabled={readOnly}
-            className={`w-full border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none border bg-white disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
-            value={formData.categoryId} 
-            onChange={e => handleCategoryChange(e.target.value)}
-        >
-            {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-    </div>
-    <div>
-        <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Código</label>
-        <input 
-            disabled={readOnly} 
-            required 
-            type="text" 
-            className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
-            value={formData.code || ''} 
-            onChange={e => handleChange('code', e.target.value)} 
-        />
-    </div>
-</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Categoría</label>
+                            <select 
+                                disabled={readOnly}
+                                className={`w-full border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none border bg-white disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
+                                value={formData.categoryId} 
+                                onChange={e => handleCategoryChange(e.target.value)}
+                            >
+                                {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Código</label>
+                            <input 
+                                disabled={readOnly} 
+                                required 
+                                type="text" 
+                                className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                                value={formData.code || ''} 
+                                onChange={e => handleChange('code', e.target.value)} 
+                            />
+                        </div>
+                    </div>
 
-{/* ✅ NUEVO CAMPO DE SERIAL */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-    <div>
-        <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Serial / IMEI</label>
-        <div className="relative">
-            <input 
-                disabled={readOnly} 
-                type="text" 
-                className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
-                value={formData.serial || ''} 
-                onChange={e => handleChange('serial', e.target.value)}
-                placeholder="Escanea o escribe el serial"
-            />
-            {!readOnly && (
-                <button
-                    type="button"
-                    onClick={() => {
-                        toast.info('Presiona el botón 📷 Escanear en la barra superior');
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition"
-                    title="Escanear serial"
-                >
-                    📷
-                </button>
-            )}
-        </div>
-    </div>
-    <div>
-        {/* Espacio vacío para mantener grid de 2 columnas */}
-    </div>
-</div>
+                    {/* CAMPO DE SERIAL */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Serial / IMEI</label>
+                            <div className="relative">
+                                <input 
+                                    disabled={readOnly} 
+                                    type="text" 
+                                    className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                                    value={formData.serial || ''} 
+                                    onChange={e => handleChange('serial', e.target.value)}
+                                    placeholder="Escanea o escribe el serial"
+                                />
+                                {!readOnly && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            toast.info('Presiona el botón 📷 Escanear en la barra superior');
+                                        }}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                                        title="Escanear serial"
+                                    >
+                                        📷
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            {/* Espacio vacío para mantener grid de 2 columnas */}
+                        </div>
+                    </div>
 
-<div>
-    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Nombre del Producto</label>
-    <input 
-        list="product-suggestions"
-        disabled={readOnly} 
-        required 
-        type="text" 
-        className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 font-semibold dark:bg-slate-700 dark:border-slate-600 dark:text-white ${darkMode ? 'text-white' : 'text-slate-800'}`}
-        value={formData.name || ''} 
-        onChange={e => handleChange('name', e.target.value)} 
-        placeholder="Ej. iPhone 15 Pro"
-    />
-    <datalist id="product-suggestions">
-        {suggestions.map((s: string, i: number) => <option key={i} value={s} />)}
-    </datalist>
-</div>
+                    <div>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Nombre del Producto</label>
+                        <input 
+                            list="product-suggestions"
+                            disabled={readOnly} 
+                            required 
+                            type="text" 
+                            className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 font-semibold dark:bg-slate-700 dark:border-slate-600 dark:text-white ${darkMode ? 'text-white' : 'text-slate-800'}`}
+                            value={formData.name || ''} 
+                            onChange={e => handleChange('name', e.target.value)} 
+                            placeholder="Ej. iPhone 15 Pro"
+                        />
+                        <datalist id="product-suggestions">
+                            {suggestions.map((s: string, i: number) => <option key={i} value={s} />)}
+                        </datalist>
+                    </div>
 
-<div>
-    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Descripción / Detalles</label>
-    <textarea 
-        disabled={readOnly}
-        className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
-        rows={2}
-        placeholder="Ej: 256GB Titanio Natural, Estado: Nuevo"
-        value={formData.description || ''}
-        onChange={e => handleChange('description', e.target.value)}
-    />
-</div>
+                    <div>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Descripción / Detalles</label>
+                        <textarea 
+                            disabled={readOnly}
+                            className={`w-full border-slate-300 rounded-lg p-2.5 text-sm border focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
+                            rows={2}
+                            placeholder="Ej: 256GB Titanio Natural, Estado: Nuevo"
+                            value={formData.description || ''}
+                            onChange={e => handleChange('description', e.target.value)}
+                        />
+                    </div>
 
-{/* ✅ AGREGAR AQUÍ - FUERA DEL DIV ANTERIOR */}
-<ImageUploader
-  currentImageUrl={formData.imageUrl}
-  onImageSelect={(file) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      imageFile: file 
-    }));
-  }}
-  disabled={readOnly}
-  darkMode={darkMode}
-/>
+                    {/* IMAGE UPLOADER */}
+                    <ImageUploader
+                        currentImageUrl={formData.imageUrl}
+                        onImageSelect={(file) => {
+                            setFormData(prev => ({ 
+                                ...prev, 
+                                imageFile: file 
+                            }));
+                        }}
+                        disabled={readOnly}
+                        darkMode={darkMode}
+                    />
 
                     {/* UBICACIÓN Y PROVEEDOR */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -598,8 +598,8 @@ const ProductModal = ({ isOpen, onClose, product, categories, isEditMode, onSave
                     </div>
 
                     <div>
-                         <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Vencimiento</label>
-                         <input disabled={readOnly} type="date" className={`w-full border rounded p-2.5 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Vencimiento</label>
+                        <input disabled={readOnly} type="date" className={`w-full border rounded p-2.5 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white`} 
                             value={formData.expirationDate || ''} onChange={e => handleChange('expirationDate', e.target.value)} />
                     </div>
 
@@ -637,7 +637,6 @@ const ScannerModal = ({ isOpen, onClose, onScan, darkMode }: { isOpen: boolean, 
           aspectRatio: 1.0
         };
         
-        // Intentar usar la cámara trasera primero
         await html5QrCode.start(
           { facingMode: "environment" }, 
           config, 
@@ -664,7 +663,6 @@ const ScannerModal = ({ isOpen, onClose, onScan, darkMode }: { isOpen: boolean, 
         console.error("Error iniciando escáner", err);
         setIsScanning(false);
         
-        // Mensajes de error específicos
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           setError('Permiso de cámara denegado. Por favor, permite el acceso a la cámara.');
           toast.error("Permiso de cámara denegado");
@@ -682,7 +680,6 @@ const ScannerModal = ({ isOpen, onClose, onScan, darkMode }: { isOpen: boolean, 
     };
 
     if (isOpen) {
-      // Pequeño delay para asegurar que el elemento DOM está listo
       setTimeout(startScanner, 100);
     } else {
       if (html5QrCode) {
@@ -758,15 +755,7 @@ const ScannerModal = ({ isOpen, onClose, onScan, darkMode }: { isOpen: boolean, 
   );
 };
 
-// --- Inventory Component ---
-
-
-
-// ============================================================
-// COMPONENTE: ProductViewModal - IPHONESHOP
-// Pegar en App.tsx ANTES del componente InventoryList
-// ============================================================
-
+// --- ProductViewModal Component ---
 const ProductViewModal = ({
   isOpen,
   onClose,
@@ -1046,6 +1035,7 @@ const ProductViewModal = ({
   );
 };
 
+// --- Inventory Component ---
 const InventoryList = ({ 
   products, 
   categories,
@@ -1078,6 +1068,8 @@ const InventoryList = ({
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
 
+  const isSavingRef = useRef(false);
+
   useEffect(() => {
     if (initialCategoryFilter) setCategoryFilter(initialCategoryFilter);
   }, [initialCategoryFilter]);
@@ -1103,58 +1095,44 @@ const InventoryList = ({
   };
 
   const handleSaveFromModal = async (productData: Product) => {
-    console.log('💾 handleSaveFromModal llamado');
-    console.log('📸 imageFile presente:', !!productData.imageFile);
-    
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+
+    const productId = selectedProduct?.id || `prod_${Date.now()}`;
+
     let imageUrl = productData.imageUrl;
     let imagePublicId = productData.imagePublicId;
 
-    // 📸 SUBIR IMAGEN SI EXISTE UNA NUEVA
-    if (productData.imageFile) {
-        console.log('📤 Subiendo imagen...');
-        toast.loading('Subiendo imagen...', { id: 'upload-image' });
-        
-        const productId = selectedProduct?.id || `prod_${Date.now()}`;
-        const result = await uploadProductImage(productData.imageFile, productId);
-        
-        if (result) {
-            console.log('✅ Imagen subida:', result);
-            imageUrl = result.url;
-            imagePublicId = result.publicId;
-            
-            // 🗑️ Si es edición y había imagen anterior, eliminarla
-            if (selectedProduct?.imagePublicId && selectedProduct.imagePublicId !== imagePublicId) {
-                console.log('🗑️ Eliminando imagen anterior...');
-                await deleteProductImage(selectedProduct.imagePublicId);
+    try {
+        if (productData.imageFile) {
+            toast.loading('Subiendo imagen...', { id: 'upload-image' });
+            const result = await uploadProductImage(productData.imageFile, productId);
+            if (result) {
+                imageUrl = result.url;
+                imagePublicId = result.publicId;
+                if (selectedProduct?.imagePublicId && selectedProduct.imagePublicId !== imagePublicId) {
+                    await deleteProductImage(selectedProduct.imagePublicId);
+                }
+                toast.dismiss('upload-image');
+                toast.success('Imagen subida correctamente');
+            } else {
+                toast.dismiss('upload-image');
+                toast.error('Error al subir la imagen');
             }
-            
-            toast.dismiss('upload-image');
-            toast.success('Imagen subida correctamente');
-        } else {
-            console.error('❌ Error subiendo imagen');
-            toast.dismiss('upload-image');
-            toast.error('Error al subir la imagen');
         }
-    }
 
-    // Preparar producto final SIN imageFile
-    const { imageFile, ...finalProduct } = {
-        ...productData,
-        imageUrl,
-        imagePublicId
-    };
+        const { imageFile, ...finalProduct } = { ...productData, imageUrl, imagePublicId };
 
-    // Guardar en DB
-    if (selectedProduct && selectedProduct.id) {
-        console.log('✏️ Editando producto existente');
-        onEditProduct(finalProduct);
-    } else {
-        console.log('🆕 Creando nuevo producto');
-        const newId = `prod_${Date.now()}`;
-        onAddProduct({ ...finalProduct, id: newId });
+        if (selectedProduct && selectedProduct.id) {
+            onEditProduct(finalProduct);
+        } else {
+            onAddProduct({ ...finalProduct, id: productId });
+        }
+
+        setModalOpen(false);
+    } finally {
+        isSavingRef.current = false;
     }
-    
-    setModalOpen(false);
 };
 
   const switchToEdit = () => {
@@ -1250,7 +1228,7 @@ const InventoryList = ({
           <table className="w-full text-left text-sm">
             <thead className={`${darkMode ? 'bg-slate-700 text-slate-200' : 'bg-slate-50 text-slate-500'} font-semibold uppercase tracking-wider text-xs`}>
               <tr>
-		<th className="px-6 py-4 w-20">Imagen</th>  {/* ← NUEVA COLUMNA */}
+                <th className="px-6 py-4 w-20">Imagen</th>
                 <th className="px-6 py-4">Producto</th>
                 <th className="px-6 py-4">Categoría</th>
                 <th className="px-6 py-4">Ubicación</th>
@@ -1263,100 +1241,111 @@ const InventoryList = ({
               </tr>
             </thead>
             <tbody className={`divide-y ${darkMode ? 'divide-slate-700' : 'divide-slate-100'}`}>
-  {filteredProducts.map(product => {
-    const category = categories.find(c => c.id === product.categoryId);
-    const alert = getAlertLevel(product);
-    const difference = (product.initialStock || 0) - product.stock;
-    
-    return (
-      <tr key={product.id} className={`hover:${darkMode ? 'bg-slate-700' : 'bg-slate-50'} cursor-pointer group`} onClick={() => handleRowClick(product)}>
-        
-        {/* ✅ CELDA DE IMAGEN */}
-        <td className="px-6 py-4">
-          {product.imageUrl ? (
-            <img 
-              src={product.imageUrl} 
-              alt={product.name}
-              className="w-14 h-14 object-cover rounded-lg shadow-sm border border-slate-200 dark:border-slate-600"
-            />
-          ) : (
-            <div className={`w-14 h-14 flex items-center justify-center rounded-lg border-2 border-dashed ${darkMode ? 'border-slate-600 bg-slate-800' : 'border-slate-300 bg-slate-50'}`}>
-              <Package size={20} className="opacity-30" />
-            </div>
-          )}
-        </td>
-        
-        {/* PRODUCTO */}
-        <td className="px-6 py-4">
-            <div className={`font-medium ${darkMode ? 'text-white' : 'text-slate-900'}`}>{product.name}</div>
-            <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{product.description}</div>
-            <div className={`text-xs font-mono mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{product.code}</div>
-        </td>
-        
-        {/* CATEGORÍA */}
-        <td className={`px-6 py-4 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-            <span className={`inline-block px-2 py-1 rounded text-xs ${darkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>{category?.name}</span>
-        </td>
-        
-        {/* UBICACIÓN */}
-        <td className={`px-6 py-4 text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            {product.location || '-'}
-        </td>
-        
-        {/* PROVEEDOR */}
-        <td className={`px-6 py-4 text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            {product.supplier || '-'}
-        </td>
-        
-        {/* INICIAL */}
-        <td className={`px-6 py-4 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{product.initialStock}</td>
-        
-        {/* ACTUAL */}
-        <td className="px-6 py-4 text-center">
-            <span className={`px-2 py-1 rounded font-bold ${
-                product.stock === 0 ? 'text-slate-200 bg-slate-800' : 
-                product.stock <= product.minStock ? 'text-red-600 bg-red-50' : 'text-slate-700'
-            }`}>
-                {product.stock}
-            </span>
-        </td>
-        
-        {/* DIFERENCIA */}
-        <td className={`px-6 py-4 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            <span className="text-xs font-mono">{difference > 0 ? `-${difference}` : difference}</span>
-        </td>
-        
-        {/* ESTADO */}
-        <td className="px-6 py-4 text-center">
-            {alert !== AlertLevel.NONE ? (
-                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
-                    alert === AlertLevel.OUT_OF_STOCK ? 'bg-slate-800 text-white' :
-                    alert === AlertLevel.EXPIRED ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                }`}>
-                    <AlertTriangle size={12} /> {alert}
-                </span>
-            ) : (
-                <span className="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full">OK</span>
-            )}
-        </td>
-        
-        {/* ACCIONES */}
-        <td className="px-6 py-4 text-right">
-            <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
-                <button onClick={() => handleRowClick(product)} className={`p-2 rounded-full transition ${darkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-slate-700' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}>
-                    <Eye size={16} />
-                </button>
-                {currentUser.role === 'admin' && (
-                    <button onClick={(e) => { e.stopPropagation(); onDeleteProduct(product.id); }} className={`p-2 rounded-full transition ${darkMode ? 'text-slate-400 hover:text-red-400 hover:bg-slate-700' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}>
-                        <Trash2 size={16} />
-                    </button>
-                )}
-            </div>
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
+              {filteredProducts.map(product => {
+                const category = categories.find(c => c.id === product.categoryId);
+                const alert = getAlertLevel(product);
+                const difference = (product.initialStock || 0) - product.stock;
+                
+                return (
+                  <tr key={product.id} className={`hover:${darkMode ? 'bg-slate-700' : 'bg-slate-50'} cursor-pointer group`} onClick={() => handleRowClick(product)}>
+                    
+                    {/* CELDA DE IMAGEN */}
+                    <td className="px-6 py-4">
+                      {product.imageUrl ? (
+                        <img 
+                          src={product.imageUrl} 
+                          alt={product.name}
+                          className="w-14 h-14 object-cover rounded-lg shadow-sm border border-slate-200 dark:border-slate-600"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent && !parent.querySelector('.img-fallback')) {
+                              const fallback = document.createElement('div');
+                              fallback.className = `img-fallback w-14 h-14 flex items-center justify-center rounded-lg border-2 border-dashed ${darkMode ? 'border-slate-600 bg-slate-800' : 'border-slate-300 bg-slate-50'}`;
+                              fallback.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-30"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`;
+                              parent.appendChild(fallback);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className={`w-14 h-14 flex items-center justify-center rounded-lg border-2 border-dashed ${darkMode ? 'border-slate-600 bg-slate-800' : 'border-slate-300 bg-slate-50'}`}>
+                          <Package size={20} className="opacity-30" />
+                        </div>
+                      )}
+                    </td>
+                    
+                    {/* PRODUCTO */}
+                    <td className="px-6 py-4">
+                        <div className={`font-medium ${darkMode ? 'text-white' : 'text-slate-900'}`}>{product.name}</div>
+                        <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{product.description}</div>
+                        <div className={`text-xs font-mono mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{product.code}</div>
+                    </td>
+                    
+                    {/* CATEGORÍA */}
+                    <td className={`px-6 py-4 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        <span className={`inline-block px-2 py-1 rounded text-xs ${darkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>{category?.name}</span>
+                    </td>
+                    
+                    {/* UBICACIÓN */}
+                    <td className={`px-6 py-4 text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {product.location || '-'}
+                    </td>
+                    
+                    {/* PROVEEDOR */}
+                    <td className={`px-6 py-4 text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {product.supplier || '-'}
+                    </td>
+                    
+                    {/* INICIAL */}
+                    <td className={`px-6 py-4 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{product.initialStock}</td>
+                    
+                    {/* ACTUAL */}
+                    <td className="px-6 py-4 text-center">
+                        <span className={`px-2 py-1 rounded font-bold ${
+                            product.stock === 0 ? 'text-slate-200 bg-slate-800' : 
+                            product.stock <= product.minStock ? 'text-red-600 bg-red-50' : 'text-slate-700'
+                        }`}>
+                            {product.stock}
+                        </span>
+                    </td>
+                    
+                    {/* DIFERENCIA */}
+                    <td className={`px-6 py-4 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <span className="text-xs font-mono">{difference > 0 ? `-${difference}` : difference}</span>
+                    </td>
+                    
+                    {/* ESTADO */}
+                    <td className="px-6 py-4 text-center">
+                        {alert !== AlertLevel.NONE ? (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
+                                alert === AlertLevel.OUT_OF_STOCK ? 'bg-slate-800 text-white' :
+                                alert === AlertLevel.EXPIRED ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                                <AlertTriangle size={12} /> {alert}
+                            </span>
+                        ) : (
+                            <span className="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full">OK</span>
+                        )}
+                    </td>
+                    
+                    {/* ACCIONES */}
+                    <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
+                            <button onClick={() => handleRowClick(product)} className={`p-2 rounded-full transition ${darkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-slate-700' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}>
+                                <Eye size={16} />
+                            </button>
+                            {currentUser.role === 'admin' && (
+                                <button onClick={(e) => { e.stopPropagation(); onDeleteProduct(product.id); }} className={`p-2 rounded-full transition ${darkMode ? 'text-slate-400 hover:text-red-400 hover:bg-slate-700' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}>
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
           </table>
         </div>
       </div>
@@ -1390,8 +1379,7 @@ const InventoryList = ({
   );
 };
 
-// --- PASO 2: Componente WriteOffModule Mejorado ---
-
+// --- WriteOffModule Component ---
 const WriteOffModule = ({
     products,
     transactions,
@@ -1417,7 +1405,6 @@ const WriteOffModule = ({
     const [receiver, setReceiver] = useState('');
     const [notes, setNotes] = useState('');
     
-    // NUEVO: Estado para archivo adjunto
     const [attachment, setAttachment] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1426,13 +1413,11 @@ const WriteOffModule = ({
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Validar tamaño (máximo 10MB)
             if (file.size > 10 * 1024 * 1024) {
                 toast.error('El archivo es demasiado grande. Máximo 10MB');
                 return;
             }
             
-            // Validar tipo de archivo
             const validTypes = [
                 'application/pdf',
                 'application/msword',
@@ -1468,7 +1453,6 @@ const WriteOffModule = ({
                 attachment || undefined
             );
             
-            // Resetear formulario
             setQuantity(1);
             setNotes('');
             setDestination('');
@@ -1503,7 +1487,6 @@ const WriteOffModule = ({
                 <div className={`p-8 rounded-xl shadow-sm border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         
-                        {/* Selector de Producto */}
                         <div>
                             <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                                 Seleccionar Producto
@@ -1523,7 +1506,6 @@ const WriteOffModule = ({
                             </select>
                         </div>
 
-                        {/* Info del Producto Seleccionado */}
                         {selectedProduct && (
                             <div className={`p-4 rounded-lg border grid grid-cols-2 gap-4 text-sm ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
                                 <div>
@@ -1537,7 +1519,6 @@ const WriteOffModule = ({
                             </div>
                         )}
 
-                        {/* Cantidad y Motivo */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -1562,7 +1543,7 @@ const WriteOffModule = ({
                                     className={`w-full border-slate-200 rounded-lg p-3 border outline-none focus:ring-2 focus:ring-red-100 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white`}
                                 >
                                     <option value="Consumo">Consumo Interno / Entrega</option>
-				    <option value="Venta">Venta</option>
+                                    <option value="Venta">Venta</option>
                                     <option value="Solicitud">Solicitud de Área</option>
                                     <option value="Deterioro">Deterioro / Daño</option>
                                     <option value="Vencimiento">Vencimiento</option>
@@ -1572,7 +1553,6 @@ const WriteOffModule = ({
                             </div>
                         </div>
 
-                        {/* Datos de Entrega */}
                         <div className={`p-4 border rounded-lg space-y-4 ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
                             <h4 className={`text-sm font-bold uppercase tracking-wider flex items-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                                 <Building2 size={16}/> Datos de Entrega
@@ -1608,7 +1588,6 @@ const WriteOffModule = ({
                             </div>
                         </div>
 
-                        {/* NUEVA SECCIÓN: Adjuntar Documento */}
                         <div className={`p-5 border-2 border-dashed rounded-xl space-y-4 ${darkMode ? 'bg-slate-900 border-slate-600' : 'bg-blue-50 border-blue-300'}`}>
                             <h4 className={`text-sm font-bold uppercase tracking-wider flex items-center gap-2 ${darkMode ? 'text-blue-400' : 'text-blue-700'}`}>
                                 📎 Documento de Soporte (Opcional)
@@ -1676,7 +1655,6 @@ const WriteOffModule = ({
                             )}
                         </div>
 
-                        {/* Notas Adicionales */}
                         <div>
                             <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                                 Notas Adicionales
@@ -1690,7 +1668,6 @@ const WriteOffModule = ({
                             />
                         </div>
 
-                        {/* Botón Submit */}
                         <button 
                             type="submit" 
                             disabled={!selectedId}
@@ -1702,7 +1679,6 @@ const WriteOffModule = ({
                 </div>
             </div>
 
-            {/* SECCIÓN DE HISTORIAL CON VISUALIZACIÓN DE ADJUNTOS */}
             <div className="space-y-4">
                 <div className="flex justify-between items-center">
                     <h2 className={`text-2xl font-bold flex items-center gap-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
@@ -1803,9 +1779,8 @@ const WriteOffModule = ({
     );
 };
 
-// --- New Module: Replenishment ---
+// --- ReplenishmentModule ---
 const ReplenishmentModule = ({ products, darkMode }: { products: Product[], darkMode: boolean }) => {
-    // Filter products that are low stock or out of stock
     const neededProducts = products.filter(p => p.stock <= p.minStock);
 
     return (
@@ -1996,54 +1971,86 @@ export default function App() {
     }
   };
 
-  // --- Supabase Data Loading ---
+  // ============================================================
+  // 1️⃣ REFRESH PRODUCTS - Mejorado con logging
+  // ============================================================
+  const refreshProducts = async () => {
+      console.log('🔄 Refrescando productos desde Supabase...');
+      try {
+          const { data, error } = await supabase
+              .from('products')
+              .select('*')
+              .order('created_at', { ascending: false });
+          
+          if (error) {
+              console.error('❌ Error refrescando productos:', error);
+              toast.error('Error al actualizar productos');
+              return;
+          }
+          
+          if (data) {
+              console.log(`✅ ${data.length} productos cargados`);
+              console.log('🖼️ Productos con imagen:', data.filter(p => p.imageUrl).length);
+              setProducts(data);
+          }
+      } catch (err) {
+          console.error('💥 Error crítico:', err);
+          toast.error('Error de conexión');
+      }
+  };
+
+  // ============================================================
+  // 2️⃣ LOAD DATA - Mejorado con logging detallado
+  // ============================================================
   const loadData = async () => {
-    console.log('📥 Cargando datos desde Supabase...');
-    setLoading(true);
-    
-    try {
-      const [productsRes, categoriesRes, usersRes, txRes] = await Promise.all([
-        supabase.from('products').select('*'),
-        supabase.from('categories').select('*'),
-        supabase.from('users').select('*'),
-        supabase.from('transactions').select('*').order('date', { ascending: false })
-      ]);
+      console.log('📥 Cargando datos desde Supabase...');
+      setLoading(true);
       
-      if (productsRes.error) {
-        console.error('Error productos:', productsRes.error);
-        toast.error('Error cargando productos');
-      } else {
-        setProducts(productsRes.data || []);
-      }
+      try {
+          const [productsRes, categoriesRes, usersRes, txRes] = await Promise.all([
+              supabase.from('products').select('*').order('created_at', { ascending: false }),
+              supabase.from('categories').select('*'),
+              supabase.from('users').select('*'),
+              supabase.from('transactions').select('*').order('date', { ascending: false })
+          ]);
+          
+          if (productsRes.error) {
+              console.error('❌ Error productos:', productsRes.error);
+              toast.error('Error cargando productos');
+          } else {
+              console.log(`✅ ${productsRes.data?.length || 0} productos cargados`);
+              console.log('🖼️ Con imagen:', productsRes.data?.filter(p => p.imageUrl).length || 0);
+              setProducts(productsRes.data || []);
+          }
 
-      if (categoriesRes.error) {
-        console.error('Error categorías:', categoriesRes.error);
-        toast.error('Error cargando categorías');
-      } else {
-        setCategories(categoriesRes.data || []);
-      }
+          if (categoriesRes.error) {
+              console.error('❌ Error categorías:', categoriesRes.error);
+              toast.error('Error cargando categorías');
+          } else {
+              setCategories(categoriesRes.data || []);
+          }
 
-      if (usersRes.error) {
-        console.error('❌ Error cargando usuarios:', usersRes.error);
-        setUsers(INITIAL_USERS); 
-      } else {
-        setUsers(usersRes.data || []);
-      }
+          if (usersRes.error) {
+              console.error('❌ Error usuarios:', usersRes.error);
+              setUsers(INITIAL_USERS); 
+          } else {
+              setUsers(usersRes.data || []);
+          }
 
-      if (txRes.error) {
-        console.error('Error transacciones:', txRes.error);
-      } else {
-        setTransactions(txRes.data || []);
-      }
+          if (txRes.error) {
+              console.error('❌ Error transacciones:', txRes.error);
+          } else {
+              setTransactions(txRes.data || []);
+          }
 
-      toast.success('Datos cargados correctamente');
-      
-    } catch (err) {
-      console.error('Error general cargando datos:', err);
-      toast.error('Error de conexión con la base de datos');
-    } finally {
-      setLoading(false);
-    }
+          toast.success('Datos cargados correctamente');
+          
+      } catch (err) {
+          console.error('💥 Error general cargando datos:', err);
+          toast.error('Error de conexión con la base de datos');
+      } finally {
+          setLoading(false);
+      }
   };
 
   // --- Import Handler ---
@@ -2078,7 +2085,7 @@ export default function App() {
                     categoryId: row.categoryId, 
                     stock: parseInt(row.stock) || 0,
                     initialStock: parseInt(row.stock) || 0,
-                    minStock: parseInt(row.minStock) || 10, // Default 10 según esquema
+                    minStock: parseInt(row.minStock) || 10,
                     unit: row.unit || 'Unidad',
                     price: parseFloat(row.price) || 0,
                     status: ProductStatus.ACTIVE,
@@ -2151,160 +2158,109 @@ export default function App() {
       toast('Sesión cerrada');
   };
 
-// ✅ FUNCIÓN addProduct - FALTABA ESTA FUNCIÓN
-// ============================================================
-const addProduct = async (product: Product) => {
-    console.log('🆕 addProduct llamado con:', product);
-    console.log('📸 imageFile presente:', !!product.imageFile);
-    
-    let imageUrl = product.imageUrl;
-    let imagePublicId = product.imagePublicId;
+  // ============================================================
+  // 3️⃣ ADD PRODUCT - Con refresh inmediato
+  // ============================================================
+  const addProduct = async (product: Product) => {
+      const { imageFile, ...productForDB } = product;
 
-    // 📸 SUBIR IMAGEN SI EXISTE
-    if (product.imageFile) {
-        console.log('📤 Iniciando subida de imagen...');
-        toast.loading('Subiendo imagen...', { id: 'upload-image' });
-        
-        const result = await uploadProductImage(
-            product.imageFile,
-            product.id || `prod_${Date.now()}`
-        );
-        
-        if (result) {
-            console.log('✅ Imagen subida correctamente:', result);
-            imageUrl = result.url;
-            imagePublicId = result.publicId;
-            toast.dismiss('upload-image');
-            toast.success('Imagen subida correctamente');
-        } else {
-            console.error('❌ Falló la subida de imagen');
-            toast.dismiss('upload-image');
-            toast.error('Error al subir la imagen');
-        }
-    } else {
-        console.log('ℹ️ No hay imageFile para subir');
-    }
+      console.log('📦 Guardando producto:', {
+          id: productForDB.id,
+          name: productForDB.name,
+          hasImage: !!productForDB.imageUrl,
+          imageUrl: productForDB.imageUrl
+      });
 
-    // Preparar producto SIN imageFile para la DB
-    const { imageFile, ...productForDB } = {
-        ...product,
-        imageUrl,
-        imagePublicId
-    };
-    
-    console.log('💾 Guardando en Supabase:', productForDB);
-    
-    setProducts(prev => [...prev, productForDB]);
-    const { error } = await supabase.from('products').insert(productForDB);
-    
-    if (error) {
-        console.error('❌ Error de Supabase al guardar producto:', error);
-        toast.error('Error al guardar en base de datos');
-        
-        // 🗑️ Si falla el guardado, eliminar la imagen subida
-        if (imagePublicId) {
-            console.log('🗑️ Limpiando imagen subida...');
-            await deleteProductImage(imagePublicId);
-        }
-    } else {
-        console.log('✅ Producto guardado exitosamente');
-        toast.success('Producto agregado');
-        logAudit('CREATED', { 
-            id: productForDB.id, 
-            name: productForDB.name, 
-            code: productForDB.code,
-            hasImage: !!imageUrl
-        }, user);
-    }
-};
+      const { error, data } = await supabase
+          .from('products')
+          .insert(productForDB)
+          .select()
+          .single();
 
- const editProduct = async (updatedProduct: Product) => {
-    console.log('✏️ editProduct llamado con:', updatedProduct);
-    console.log('📸 imageFile presente:', !!updatedProduct.imageFile);
-    
-    const oldProduct = products.find(p => p.id === updatedProduct.id);
-    
-    let imageUrl = updatedProduct.imageUrl;
-    let imagePublicId = updatedProduct.imagePublicId;
+      if (error) {
+          console.error('❌ Error Supabase:', error);
+          toast.error('Error al guardar en base de datos');
+          if (productForDB.imagePublicId) {
+              await deleteProductImage(productForDB.imagePublicId);
+          }
+      } else {
+          console.log('✅ Producto guardado en DB:', data);
+          toast.success('Producto agregado');
+          logAudit('CREATED', { id: data.id, name: data.name, hasImage: !!data.imageUrl }, user);
+          
+          // ✅ CRÍTICO: Refrescar inmediatamente
+          await refreshProducts();
+      }
+  };
 
-    // 📸 ACTUALIZAR IMAGEN SI HAY UNA NUEVA
-    if (updatedProduct.imageFile) {
-        console.log('📤 Actualizando imagen...');
-        toast.loading('Actualizando imagen...', { id: 'upload-image' });
-        
-        const result = await uploadProductImage(
-            updatedProduct.imageFile,
-            updatedProduct.id
-        );
-        
-        if (result) {
-            console.log('✅ Imagen actualizada:', result);
-            imageUrl = result.url;
-            imagePublicId = result.publicId;
-            
-            // 🗑️ Eliminar imagen anterior si existe y es diferente
-            if (oldProduct?.imagePublicId && oldProduct.imagePublicId !== imagePublicId) {
-                console.log('🗑️ Eliminando imagen anterior...');
-                await deleteProductImage(oldProduct.imagePublicId);
-            }
-            
-            toast.dismiss('upload-image');
-            toast.success('Imagen actualizada');
-        } else {
-            console.error('❌ Error actualizando imagen');
-            toast.dismiss('upload-image');
-            toast.error('Error al actualizar la imagen');
-        }
-    } else {
-        console.log('ℹ️ No hay nueva imagen para subir');
-    }
-    
-    // Preparar producto SIN imageFile para la DB
-    const { imageFile, ...productForDB } = {
-        ...updatedProduct,
-        imageUrl,
-        imagePublicId
-    };
-    
-    console.log('💾 Actualizando en Supabase:', productForDB);
-    
-    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? productForDB : p));
-    const { error } = await supabase.from('products').update(productForDB).eq('id', updatedProduct.id);
-    
-    if (error) {
-        console.error('❌ Error de Supabase:', error);
-        toast.error('Error al actualizar producto');
-    } else {
-        console.log('✅ Producto actualizado exitosamente');
-        toast.success('Producto actualizado');
-        logAudit('UPDATED', { 
-            id: productForDB.id, 
-            name: productForDB.name,
-            old_price: oldProduct?.price,
-            new_price: productForDB.price,
-            old_stock: oldProduct?.stock,
-            new_stock: productForDB.stock,
-            imageUpdated: !!updatedProduct.imageFile
-        }, user);
-    }
-};
+  // ============================================================
+  // 4️⃣ EDIT PRODUCT - Con refresh inmediato
+  // ============================================================
+  const editProduct = async (updatedProduct: Product) => {
+      const oldProduct = products.find(p => p.id === updatedProduct.id);
+      const { imageFile, ...productForDB } = updatedProduct;
+      const { id, created_at, ...fieldsToUpdate } = productForDB as any;
 
+      console.log('✏️ Actualizando producto:', {
+          id: updatedProduct.id,
+          name: updatedProduct.name,
+          imageUrl: updatedProduct.imageUrl
+      });
+
+      const { data, error } = await supabase
+          .from('products')
+          .update(fieldsToUpdate)
+          .eq('id', updatedProduct.id)
+          .select()
+          .single();
+
+      if (error) {
+          console.error('❌ Error Supabase:', error);
+          toast.error('Error al actualizar producto');
+          if (oldProduct) {
+              setProducts(prev => prev.map(p => p.id === updatedProduct.id ? oldProduct : p));
+          }
+      } else {
+          console.log('✅ Producto actualizado en DB:', data);
+          toast.success('Producto actualizado');
+          logAudit('UPDATED', { id: data.id, name: data.name, imageUpdated: !!data.imageUrl }, user);
+          
+          // ✅ CRÍTICO: Refrescar inmediatamente
+          await refreshProducts();
+      }
+  };
+
+  // ✅ deleteProduct - con rollback si falla
   const deleteProduct = async (id: string) => {
-    const productToDelete = products.find(p => p.id === id); 
-    if (!confirm('¿Está seguro de eliminar este producto?')) return;
-    
+    const productToDelete = products.find(p => p.id === id);
+    if (!confirm('¿Está seguro de eliminar este producto? También se eliminarán sus transacciones.')) return;
+
     setProducts(prev => prev.filter(p => p.id !== id));
-    const { error } = await supabase.from('products').delete().eq('id', id);
-    
+
+    await supabase
+        .from('transactions')
+        .delete()
+        .eq('productId', id);
+
+    const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
     if (error) {
+        console.error('❌ Error eliminando producto:', error);
         toast.error('Error al eliminar producto');
+        if (productToDelete) {
+            setProducts(prev => [...prev, productToDelete]);
+        }
     } else {
+        setTransactions(prev => prev.filter(tx => tx.productId !== id));
         toast.success('Producto eliminado');
-        logAudit('DELETED', { id: id, name: productToDelete?.name, code: productToDelete?.code }, user);
+        logAudit('DELETED', { id, name: productToDelete?.name }, user);
     }
   };
 
-  // --- PASO 3: Función processBaja Mejorada ---
+  // --- processBaja ---
   const processBaja = async (
     productId: string, 
     qty: number, 
@@ -2312,7 +2268,7 @@ const addProduct = async (product: Product) => {
     destination?: string, 
     receiver?: string,
     attachment?: File
-) => {
+  ) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
@@ -2324,12 +2280,10 @@ const addProduct = async (product: Product) => {
     toast.loading('Procesando salida...', { id: 'process-baja' });
 
     try {
-        // 1. Actualizar Stock
         const newStock = product.stock - qty;
         setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock } : p));
         await supabase.from('products').update({ stock: newStock }).eq('id', productId);
 
-        // 2. Subir archivo si existe
         let attachmentUrl = '';
         let attachmentName = '';
         let attachmentType = '';
@@ -2341,14 +2295,13 @@ const addProduct = async (product: Product) => {
             const filePath = `transaction-attachments/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('documents') // Asegúrate de crear este bucket en Supabase
+                .from('documents')
                 .upload(filePath, attachment);
 
             if (uploadError) {
                 console.error('Error subiendo archivo:', uploadError);
                 toast.error('Error al subir el documento adjunto');
             } else {
-                // Obtener URL pública
                 const { data: urlData } = supabase.storage
                     .from('documents')
                     .getPublicUrl(filePath);
@@ -2362,7 +2315,6 @@ const addProduct = async (product: Product) => {
             }
         }
 
-        // 3. Crear transacción
         const newTx: Transaction = {
             id: `tx_${Date.now()}`,
             productId,
@@ -2393,7 +2345,6 @@ const addProduct = async (product: Product) => {
             duration: 5000,
         });
 
-        // Log de auditoría
         logAudit('STOCK_OUT', { 
             id: product.id, 
             name: product.name, 
@@ -2408,7 +2359,7 @@ const addProduct = async (product: Product) => {
         console.error('Error procesando baja:', error);
         toast.error('Error al procesar la salida');
     }
-};
+  };
 
   const addCategory = async (name: string, description: string) => {
     const newCat: Category = { id: `cat_${Date.now()}`, name, description };
